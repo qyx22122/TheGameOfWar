@@ -1,8 +1,8 @@
 #include "stdio.h"
 #include "util.h"
 
-int count(Board b, int i);
-void updateBoard(Board b);
+int count(Board* board, int);
+void updateBoard(Board* board);
 
 int main(){
 	printf("Hello World!\n");
@@ -56,17 +56,18 @@ void updateBoard(Board* b){
 		c = count(b,i);
 		if(b->green & (1 << i)){
 			tmp.green ^= (c==2 || c==3)? 1<<i : 0;
-			tmp.blue ^= (c<0) 1<<i : 0;
+			tmp.blue ^= (c<0)? 1<<i : 0;
 		}else
 			tmp.green ^= (c==3)? 1<<i : 0;
 		c *= -1;
 		if(b->blue & (1 << i)){
 			tmp.blue ^= (c==2 || c==3)? 1<<i : 0;
-			tmp.green ^= (c<0) 1<<i : 0;
+			tmp.green ^= (c<0)? 1<<i : 0;
 		}else
 			tmp.blue ^= (c==3)? 1<<i : 0;
 	}
-	&b = tmp;
+	b->green = tmp.green;
+	b->blue = tmp.blue;
 }
 
 
