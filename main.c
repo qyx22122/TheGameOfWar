@@ -1,11 +1,15 @@
 #include "stdio.h"
 #include "util.h"
+#include "draw.h"
 
 int count(Board* board, int i);
 void updateBoard(Board* board);
 
 int main(){
-	printf("Hello World!\n");
+	initWindow("The Game Of War", 800, 600);
+	while(!windowShouldClose()){
+		drawBoard();
+	}
 }
 int count(Board* b, int i){
 	int count = 0;
