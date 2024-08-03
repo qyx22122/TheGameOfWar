@@ -1,19 +1,13 @@
 #include "stdio.h"
+#include "util.h"
 
-typedef unsigned _BitInt(256) u256;
-
-typedef struct Board{
-	u256 green;
-	u256 blue;
-} Board;
-
-int countN(Board b,int i);
+int countN(Board b, int i);
 Board step(Board old);
 
 int main(){
 	printf("Hello World!\n");
 }
-int countG(Board b,int i){
+int countG(Board b, int i){
 	int count = 0;
 	if(i > 8){
 		if(i%8){
@@ -56,8 +50,8 @@ int countG(Board b,int i){
 
 
 
-Board step(Board old){
+/*Board step(Board old){
 	u256 x = 1;
 	for(int i = 0; i < 256; i++)
 		if(old.green & (x << 1))
-
+*/
