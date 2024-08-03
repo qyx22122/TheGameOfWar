@@ -1,7 +1,7 @@
 #include "stdio.h"
 #include "util.h"
 
-int count(Board* board, int);
+int count(Board* board, int i);
 void updateBoard(Board* board);
 
 int main(){
