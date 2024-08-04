@@ -4,12 +4,17 @@
 
 int count(Board* board, int i);
 void updateBoard(Board* board);
+void initBoard(Board* board);
 
 int main(){
-	initWindow("The Game Of War", 800, 600);
-	while(!windowShouldClose()){
-		drawBoard();
-	}
+	//initWindow("The Game Of War", 800, 600);
+	Board b;
+	initBoard(&b);
+	for(int i = 0; i < 256; i++) printf("%c", (b.blue & 1<<i)? '1' : '0');
+	updateBoard(&b);
+	//while(!windowShouldClose()){
+	//	drawBoard();
+	//}
 }
 int count(Board* b, int i){
 	int count = 0;
@@ -74,6 +79,18 @@ void updateBoard(Board* b){
 	b->blue = tmp.blue;
 }
 
-
+void initBoard(Board* b){
+	b->blue = 0b00000000000000000110010000100110;
+	b->blue <<= 32;
+	b->blue ^= 0b01101110011101100000010000100000;
+	b->blue <<= 32;
+	b->blue ^= 0b00000001100000000000000110000000;
+        b->blue <<= 160;
+	b->green = 0b00000001100000000000000110000000;
+	b->green <<= 32;
+	b->green ^= 0b00000100001000000110111001110110;
+	b->green <<= 32;
+	b->green ^= 0b01100100001001100000000000000000;
+}
 
 
