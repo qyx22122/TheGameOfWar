@@ -11,9 +11,11 @@ void printBoard(Board* board);
 int main(){
 	Board b;
 	initBoard(&b);
-	for(int i = 0; i < 15; i++){
-		printBoard(&b);
-		updateBoard(&b);
+
+	initWindow("The Game Of War", 800, 800);
+	
+	while(!windowShouldClose()) {
+		drawBoard(&b);
 	}
 }
 void printBoard(Board* b) {
