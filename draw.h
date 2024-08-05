@@ -12,19 +12,19 @@ void drawBoard(Board* b){
 
 	int screenWidth = GetScreenWidth();
 	int screenHeight = GetScreenHeight();
-	int SIZE = min(screenWidth, screenHeight)/16;
-	int offsetX = (screenWidth > screenHeight ? screenWidth : 0);
-	int offsetY = ;
+	int size = min(screenWidth, screenHeight)/16;
+	int offsetX = screenWidth > screenHeight ? (screenWidth - screenHeight)/2 : 0;
+	int offsetY = screenHeight > screenWidth ? (screenHeight - screenWidth)/2 : 0;
 
 	BeginDrawing();
 	{
-		ClearBackground(RAYWHITE);
+		ClearBackground(DARKGRAY);
 
 		for(int i = 0; i < 256; i++)
 		{
-			Color color = (b->green[i] ? GREEN : (b->blue[i] ? BLUE : WHITE));
+			Color color = (b->green[i] ? GREEN : (b->blue[i] ? BLUE : BLACK));
 			
-			DrawRectangle(offsetX + (i % 16) * (SIZE + SPACING), offsetY + (i/16) * (SIZE + SPACING), SIZE, SIZE, color);
+			DrawRectangle(offsetX + (i % 16) * (size + SPACING), offsetY + (i/16) * (size + SPACING), size, size, color);
 		}
 	}
 	EndDrawing();
