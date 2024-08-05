@@ -11,7 +11,7 @@ void printBoard(Board* board);
 int main(){
 	Board b;
 	initBoard(&b);
-	for(int i = 0; i < 20; i++){
+	for(int i = 0; i < 15; i++){
 		printBoard(&b);
 		updateBoard(&b);
 	}
@@ -22,7 +22,7 @@ void printBoard(Board* b) {
 		if(i%16 == 15)
 			printf("\n");
 	}
-	printf("\n\n");
+	printf("----------------\n");
 }
 int count(Board* b, int i){
 	int count = 0;
