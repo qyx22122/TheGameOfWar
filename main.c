@@ -15,6 +15,7 @@ int main(){
 	initWindow("The Game Of War", 800, 800);
 	
 	while(!windowShouldClose()) {
+		updateBoard(&b);
 		drawBoard(&b);
 	}
 }
@@ -96,4 +97,5 @@ void initBoard(Board* b){
 	for(int i = 0; i < strlen(SP); i++) b->blue[i] = SP[i] - '0';
 	for(int i = 255; i > 255-strlen(SP); i--) b->green[i] = SP[255-i] - '0';
 }
+
 
