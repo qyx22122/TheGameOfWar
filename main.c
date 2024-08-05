@@ -1,4 +1,5 @@
 #include "stdio.h"
+#include "string.h"
 #include "util.h"
 #include "draw.h"
 
@@ -10,47 +11,50 @@ int main(){
 	//initWindow("The Game Of War", 800, 600);
 	Board b;
 	initBoard(&b);
-	for(int i = 0; i < 256; i++) printf("%c", (b.blue & 1<<i)? '1' : '0');
 	updateBoard(&b);
+	for(int i = 0; i < 256; i++){
+	       	printf("%c", (b.green[i] || b.blue[i])? '1' : ' ');
+		if(i%16 == 15) printf("\n");
+	}
 	//while(!windowShouldClose()){
 	//	drawBoard();
 	//}
 }
 int count(Board* b, int i){
 	int count = 0;
-	if(i > 8){
-		if(i%8){
-			count -= (b->green & i-9)? 1 : 0;
-			count += (b->blue & i-9)? 1 : 0;
+	if(i > 16){
+		if(i%16){
+			count += b->green[i-17];
+			count -= b->blue[i-17];
 		}
-		if(i%8 < 7){	
-			count -= (b->green & i-7)? 1 : 0;
-			count += (b->blue & i-7)? 1 : 0;
-		}
-
-		count -= (b->green & i-8)? 1 : 0;
-		count += (b->blue & i-8)? 1 : 0;
-	}
-	if(i < (255-8)){
-		if(i%8){
-			count -= (b->green & i+9)? 1 : 0;
-			count += (b->blue & i+9)? 1 : 0;
-		}
-		if(i%8 < 7){	
-			count -= (b->green & i+7)? 1 : 0;
-			count += (b->blue & i+7)? 1 : 0;
+		if(i%16 < 15){	
+			count += b->green[i-15];
+			count -= b->blue[i-15];
 		}
 
-		count -= (b->green & i+8)? 1 : 0;
-		count += (b->blue & i+8)? 1 : 0;
+		count += b->green[i-16];
+		count -= b->blue[i-16];
 	}
-	if(i%8){
-		count -= (b->green & i-1)? 1 : 0;
-		count += (b->blue & i-1)? 1 : 0;
+	if(i < (255-16)){
+		if(i%16){
+			count += b->green[i+17];
+			count -= b->blue[i+17];
+		}
+		if(i%16 < 15){	
+			count += b->green[i+15];
+			count -= b->blue[i+15];
+		}
+
+		count += b->green[i+16];
+		count -= b->blue[i+16];
 	}
-	if(i%8 < 7){	
-		count -= (b->green & i+1)? 1 : 0;
-		count += (b->blue & i+1)? 1 : 0;
+	if(i%16){
+		count += b->green[i-1];
+		count -= b->blue[i-1];
+	}
+	if(i%16 < 15){	
+		count += b->green[i+1];
+		count -= b->blue[i+1];
 	}
 	return count;
 }
@@ -58,39 +62,32 @@ int count(Board* b, int i){
 
 void updateBoard(Board* b){
 	Board tmp;
-	tmp.green = 0;
-	tmp.blue = 0;
+	for(int i = 0; i < 256; i++) tmp.blue[i] = tmp.green[i] = 0;
 	int c;
 	for(int i = 0; i < 256; i++){
 		c = count(b,i);
-		if(b->green & (1 << i)){
-			tmp.green ^= (c==2 || c==3)? 1<<i : 0;
-			tmp.blue ^= (c<0)? 1<<i : 0;
+		if(b->green[i]){
+			tmp.green[i] = (c==2 || c==3);
+			tmp.blue[i] = (c<0);
 		}else
-			tmp.green ^= (c==3)? 1<<i : 0;
+			tmp.green[i] = (c==3);
 		c *= -1;
-		if(b->blue & (1 << i)){
-			tmp.blue ^= (c==2 || c==3)? 1<<i : 0;
-			tmp.green ^= (c<0)? 1<<i : 0;
+		if(b->blue[i]){
+			tmp.blue[i] = (c==2 || c==3);
+			tmp.green[i] = (c<0);
 		}else
-			tmp.blue ^= (c==3)? 1<<i : 0;
+			tmp.blue[i] = (c==3);
 	}
-	b->green = tmp.green;
-	b->blue = tmp.blue;
+	for(int i = 0; i < 256; i++){
+		b->green[i] = tmp.green[i];
+		b->blue[i] = tmp.blue[i];
+	}
 }
 
 void initBoard(Board* b){
-	b->blue = 0b00000000000000000110010000100110;
-	b->blue <<= 32;
-	b->blue ^= 0b01101110011101100000010000100000;
-	b->blue <<= 32;
-	b->blue ^= 0b00000001100000000000000110000000;
-        b->blue <<= 160;
-	b->green = 0b00000001100000000000000110000000;
-	b->green <<= 32;
-	b->green ^= 0b00000100001000000110111001110110;
-	b->green <<= 32;
-	b->green ^= 0b01100100001001100000000000000000;
+	for(int i = 0; i < 256; i++) b->blue[i] = b->green[i] = 0;
+	char SP[] = "000000000000000001100100001001100110111001110110000001000010000000000001100000000000000110000000";
+	for(int i = 0; i < strlen(SP); i++) b->blue[i] = SP[i] - '0';
+	for(int i = 255; i > 255-strlen(SP); i--) b->green[i] = SP[255-i] - '0';
 }
-
 
