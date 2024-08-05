@@ -6,19 +6,23 @@
 int count(Board* board, int i);
 void updateBoard(Board* board);
 void initBoard(Board* board);
+void printBoard(Board* board);
 
 int main(){
-	//initWindow("The Game Of War", 800, 600);
 	Board b;
 	initBoard(&b);
+	printBoard(&b);
 	updateBoard(&b);
+	printBoard(&b);
+}
+void printBoard(Board* b) {
 	for(int i = 0; i < 256; i++){
-	       	printf("%c", (b.green[i] || b.blue[i])? '1' : ' ');
-		if(i%16 == 15) printf("\n");
+		printf("%c", (b->green[i] ? '1' : (b->blue[i] ? '2' : ' ')));
+		if(i%16 == 15)
+		{
+			printf("\n");
+		}
 	}
-	//while(!windowShouldClose()){
-	//	drawBoard();
-	//}
 }
 int count(Board* b, int i){
 	int count = 0;
