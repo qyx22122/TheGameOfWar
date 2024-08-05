@@ -11,18 +11,18 @@ void printBoard(Board* board);
 int main(){
 	Board b;
 	initBoard(&b);
+	for(int i = 0; i < 5; i++){
 	printBoard(&b);
 	updateBoard(&b);
-	printBoard(&b);
+	}
 }
 void printBoard(Board* b) {
 	for(int i = 0; i < 256; i++){
-		printf("%c", (b->green[i] ? '1' : (b->blue[i] ? '2' : ' ')));
+		printf("%c", (b->green[i] ? 'G' : (b->blue[i] ? 'B' : ' ')));
 		if(i%16 == 15)
-		{
 			printf("\n");
-		}
 	}
+	printf("\n\n");
 }
 int count(Board* b, int i){
 	int count = 0;
