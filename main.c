@@ -11,9 +11,9 @@ void printBoard(Board* board);
 int main(){
 	Board b;
 	initBoard(&b);
-	for(int i = 0; i < 5; i++){
-	printBoard(&b);
-	updateBoard(&b);
+	for(int i = 0; i < 20; i++){
+		printBoard(&b);
+		updateBoard(&b);
 	}
 }
 void printBoard(Board* b) {
