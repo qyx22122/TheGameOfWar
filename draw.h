@@ -19,14 +19,19 @@ bool drawBoard(Board* b){
 	int offsetY = screenHeight > screenWidth ? (screenHeight - screenWidth)/2 : 0;
 
 	Vector2 mousePos = GetMousePosition();
-	int hI = (mousePos.x - offsetX)/size + ((int)(mousePos.y -offsetY)/size)*16;
-	bool validHI = 1;
-	if(hI >= 256 || hI < 0 || (lastTurn)? b->green[hI] : b->blue[hI]) validHI = 0;
-	if(validHI && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ) {
+	
+	int hoverIndex = (mousePos.x - offsetX)/size + ((int)(mousePos.y -offsetY)/size)*16;
+	
+	bool validHoverIndex = true;
+
+	if(hoverIndex >= 256 || hoverIndex < 0 || (lastTurn)? b->green[hoverIndex] : b->blue[hoverIndex])
+		validHoverIndex = 0;
+
+	if(validHoverIndex && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ) {
 		if(!lastTurn)
-			b->green[hI] = !b->green[hI];
+			b->green[hoverIndex] = !b->green[hoverIndex];
 		else
-			b->blue[hI] = !b->blue[hI];
+			b->blue[hoverIndex] = !b->blue[hoverIndex];
 
 		lastTurn = !lastTurn;
 	}
@@ -42,10 +47,11 @@ bool drawBoard(Board* b){
 
 			Rectangle bounds = {offsetX + (i % 16) * size, offsetY + (i / 16) * size, size, size};
 
-			if(hI == i)
+			if(hoverIndex == i)
 				color = lastTurn ? SKYBLUE : LIME;
-			if(!validHI && hI == i)
+			if(!validHoverIndex && hoverIndex == i)
 				color = RED;
+
 			DrawRectangleRec(bounds, color);
 		}
 	}
