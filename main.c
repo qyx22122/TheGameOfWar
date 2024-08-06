@@ -15,8 +15,10 @@ int main(){
 	initWindow("The Game Of War", 800, 800);
 	
 	while(!windowShouldClose()) {
-		updateBoard(&b);
-		drawBoard(&b);
+		bool update = drawBoard(&b);
+
+		if(update)
+			updateBoard(&b);
 	}
 }
 void printBoard(Board* b) {

@@ -3,13 +3,12 @@
 void initWindow(const char* title, int sizeX, int sizeY){
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 	InitWindow(sizeX, sizeY, title);
-	SetTargetFPS(1);
 }
 bool windowShouldClose(){
 	return WindowShouldClose();
 }
 
-void drawBoard(Board* b){
+bool drawBoard(Board* b){
 
 	int screenWidth = GetScreenWidth();
 	int screenHeight = GetScreenHeight();
@@ -29,4 +28,10 @@ void drawBoard(Board* b){
 		}
 	}
 	EndDrawing();
+	
+	// Space
+	if(IsKeyPressed(32))
+		return true;
+
+	return false;
 }
