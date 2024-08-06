@@ -1,6 +1,10 @@
-typedef unsigned _BitInt(256) u256;
+#include "stdbool.h"
 
 typedef struct Board{
-	u256 green;
-	u256 blue;
+	bool green[256];
+	bool blue[256];
 } Board;
+
+int min(int x, int y) {
+	return x < y ? x : y;
+}
