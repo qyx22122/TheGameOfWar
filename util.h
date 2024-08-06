@@ -1,6 +1,6 @@
 #include "stdbool.h"
 
-#define DEBUG_MODE 1
+#define DEBUG_MODE 0
 
 typedef struct Board{
 	bool green[256];

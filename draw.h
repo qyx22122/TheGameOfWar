@@ -3,6 +3,7 @@
 void initWindow(const char* title, int sizeX, int sizeY){
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 	InitWindow(sizeX, sizeY, title);
+	SetTargetFPS(60);
 }
 bool windowShouldClose(){
 	return WindowShouldClose();
