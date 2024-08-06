@@ -1,7 +1,5 @@
 #include "stdbool.h"
 
-#define SPACING 0
-
 typedef struct Board{
 	bool green[256];
 	bool blue[256];
