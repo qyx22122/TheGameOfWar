@@ -19,23 +19,18 @@ bool drawBoard(Board* b){
 	int offsetY = screenHeight > screenWidth ? (screenHeight - screenWidth)/2 : 0;
 
 	Vector2 mousePos = GetMousePosition();
+	int hI = (mousePos.x - offsetX)/size + ((int)(mousePos.y -offsetY)/size)*16;
+	bool validHI = 1;
+	if(hI >= 256 || hI < 0 || (lastTurn)? b->green[hI] : b->blue[hI]) validHI = 0;
+	if(validHI && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ) {
+		if(!lastTurn)
+			b->green[hI] = !b->green[hI];
+		else
+			b->blue[hI] = !b->blue[hI];
 
-	for(int i = 0; i < 256; i++)
-	{
-		Rectangle bounds = {offsetX + (i % 16) * size, offsetY + (i / 16) * size, size, size};
-		
-		if(CheckCollisionPointRec(mousePos, bounds)) {
-
-			if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-				if(!lastTurn)
-					b->green[i] = !b->green[i];
-				else
-					b->blue[i] = !b->blue[i];
-
-				lastTurn = !lastTurn;
-			}
-		}
+		lastTurn = !lastTurn;
 	}
+		
 
 	BeginDrawing();
 	{
@@ -47,9 +42,10 @@ bool drawBoard(Board* b){
 
 			Rectangle bounds = {offsetX + (i % 16) * size, offsetY + (i / 16) * size, size, size};
 
-			if (CheckCollisionPointRec(mousePos, bounds))
+			if(hI == i)
 				color = lastTurn ? SKYBLUE : LIME;
-			
+			if(!validHI && hI == i)
+				color = RED;
 			DrawRectangleRec(bounds, color);
 		}
 	}
