@@ -8,6 +8,8 @@ bool windowShouldClose(){
 	return WindowShouldClose();
 }
 
+extern int count(Board* b, int i);
+
 bool lastTurn = false;
 
 bool drawBoard(Board* b){
@@ -56,6 +58,9 @@ bool drawBoard(Board* b){
 				color = RED;
 
 			DrawRectangleRec(bounds, color);
+
+			if(DEBUG_MODE == true)
+				DrawText(TextFormat("%d", count(b, i)), bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, 20, WHITE);
 		}
 	}
 	EndDrawing();

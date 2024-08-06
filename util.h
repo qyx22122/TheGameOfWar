@@ -1,5 +1,7 @@
 #include "stdbool.h"
 
+#define DEBUG_MODE 1
+
 typedef struct Board{
 	bool green[256];
 	bool blue[256];

@@ -29,63 +29,93 @@ void printBoard(Board* b) {
 	}
 	printf("----------------\n");
 }
-int count(Board* b, int i){
+int count(Board* b, int i) {
 	int count = 0;
-	if(i > 16){
-		if(i%16){
-			count += b->green[i-17];
-			count -= b->blue[i-17];
-		}
-		if(i%16 < 15){	
-			count += b->green[i-15];
-			count -= b->blue[i-15];
-		}
 
-		count += b->green[i-16];
-		count -= b->blue[i-16];
-	}
-	if(i < (255-16)){
-		if(i%16){
-			count += b->green[i+17];
-			count -= b->blue[i+17];
-		}
-		if(i%16 < 15){	
-			count += b->green[i+15];
-			count -= b->blue[i+15];
-		}
+	int x = i % 16;
+	int y = i / 16;
 
-		count += b->green[i+16];
-		count -= b->blue[i+16];
+	// Left
+	if(x > 0) {
+		count += b->green[x-1 + y * 16];
+		count -= b->blue[x-1 + y * 16];
 	}
-	if(i%16){
-		count += b->green[i-1];
-		count -= b->blue[i-1];
+	// Right
+	if(x < 15) {
+		count += b->green[x+1 + y * 16];
+		count -= b->blue[x+1 + y * 16];
 	}
-	if(i%16 < 15){	
-		count += b->green[i+1];
-		count -= b->blue[i+1];
+	// Top
+	if(y > 0) {
+		count += b->green[x + (y-1) * 16];
+		count -= b->blue[x + (y-1) * 16];
 	}
+	// Bottom
+	if(y < 15) {
+		count += b->green[x + (y+1) * 16];
+		count -= b->blue[x + (y+1) * 16];
+	}
+	// Top Left
+	if(x > 0 && y > 0) {
+		count += b->green[x-1 + (y-1) * 16];
+		count -= b->blue[x-1 + (y-1) * 16];
+	}
+	// Top Right
+	if(x < 15 && y > 0) {
+		count += b->green[x+1 + (y-1) * 16];
+		count -= b->blue[x+1 + (y-1) * 16];
+	}
+	// Bottom Left
+	if(x > 0 && y < 15) {
+		count += b->green[x-1 + (y+1) * 16];
+		count -= b->blue[x-1 + (y+1) * 16];
+	}
+	// Bottom Right
+	if(x < 15 && y < 15) {
+		count += b->green[x+1 + (y+1) * 16];
+		count -= b->blue[x+1 + (y+1) * 16];
+	}
+	
 	return count;
 }
 
 
 void updateBoard(Board* b){
 	Board tmp;
-	for(int i = 0; i < 256; i++) tmp.blue[i] = tmp.green[i] = 0;
+	for(int i = 0; i < 256; i++) tmp.blue[i] = tmp.green[i] = false;
 	int c;
 	for(int i = 0; i < 256; i++){
 		c = count(b,i);
-		if(b->green[i]){
-			tmp.green[i] = (c==2 || c==3);
-			tmp.blue[i] = (c<0);
-		}else
-			tmp.green[i] = (c==3);
+		if(b->green[i]) {
+			if(c < 0) {
+				tmp.green[i] = false;
+				tmp.blue[i] = true;
+			}
+			if(c == 2 || c == 3) {
+				tmp.green[i] = true;
+			}
+		}
+		else {
+			if(c == 3)
+				tmp.green[i] = true;
+		}
+		
 		c *= -1;
-		if(b->blue[i]){
-			tmp.blue[i] = (c==2 || c==3);
-			tmp.green[i] = (c<0);
-		}else
-			tmp.blue[i] = (c==3);
+
+		if(b->blue[i]) {
+			if(c < 0) {
+				tmp.blue[i] = false;
+				tmp.green[i] = true;
+			}
+			if(c == 2 || c == 3) {
+				tmp.blue[i] = true;
+			}
+		}
+		else {
+			if(c == 3)
+				tmp.blue[i] = true;
+		}
+
 	}
 	for(int i = 0; i < 256; i++){
 		b->green[i] = tmp.green[i];
