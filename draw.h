@@ -22,12 +22,15 @@ bool drawBoard(Board* b){
 	
 	int hoverIndex = (mousePos.x - offsetX)/size + ((int)(mousePos.y -offsetY)/size)*16;
 	
-	bool validHoverIndex = true;
+	bool validHoverIndex = 1;
+	bool onBoard;
 
-	if(hoverIndex >= 256 || hoverIndex < 0 || (lastTurn)? b->green[hoverIndex] : b->blue[hoverIndex])
+
+	if(hoverIndex >= 256 || hoverIndex < 0 ||(lastTurn)? b->green[hoverIndex] : b->blue[hoverIndex])
 		validHoverIndex = 0;
+	onBoard = (mousePos.x > offsetX && mousePos.x < screenWidth - offsetX);
 
-	if(validHoverIndex && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ) {
+	if(onBoard && validHoverIndex && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ) {
 		if(!lastTurn)
 			b->green[hoverIndex] = !b->green[hoverIndex];
 		else
@@ -47,9 +50,9 @@ bool drawBoard(Board* b){
 
 			Rectangle bounds = {offsetX + (i % 16) * size, offsetY + (i / 16) * size, size, size};
 
-			if(hoverIndex == i)
+			if(onBoard && hoverIndex == i)
 				color = lastTurn ? SKYBLUE : LIME;
-			if(!validHoverIndex && hoverIndex == i)
+			if(onBoard && !validHoverIndex && hoverIndex == i)
 				color = RED;
 
 			DrawRectangleRec(bounds, color);
@@ -58,8 +61,10 @@ bool drawBoard(Board* b){
 	EndDrawing();
 	
 	// Space
-	if(IsKeyPressed(32))
+	if(IsKeyPressed(32)){
+		lastTurn = !lastTurn;
 		return true;
+	}
 
 	return false;
 }
