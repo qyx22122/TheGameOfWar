@@ -8,54 +8,60 @@ void initWindow(const char* title, int sizeX, int sizeY){
 bool windowShouldClose(){
 	return WindowShouldClose();
 }
+void closeWindow() {
+	CloseWindow();
+}
 
 extern int count(Board* b, int i);
 
-bool lastTurn = false;
-
-bool drawBoard(Board* b){
+Move drawBoard(Board* b, bool turn, int playerColor){
 
 	int screenWidth = GetScreenWidth();
 	int screenHeight = GetScreenHeight();
-	int size = min(screenWidth, screenHeight)/16;
+	int size = min(screenWidth, screenHeight)/BOARD_SIZE;
 	int offsetX = screenWidth > screenHeight ? (screenWidth - screenHeight)/2 : 0;
 	int offsetY = screenHeight > screenWidth ? (screenHeight - screenWidth)/2 : 0;
 
 	Vector2 mousePos = GetMousePosition();
 	
-	int hoverIndex = (mousePos.x - offsetX)/size + ((int)(mousePos.y -offsetY)/size)*16;
-	
+	int hoverIndex = (mousePos.x - offsetX)/size + ((int)(mousePos.y -offsetY)/size)*BOARD_SIZE;
+
 	bool validHoverIndex = 1;
-	bool onBoard;
+	bool onBoard = (mousePos.x > offsetX && mousePos.x < screenWidth - offsetX);
+	Move move;
+	move.type = NONE;
+	move.position = -1;
 
-
-	if(hoverIndex >= 256 || hoverIndex < 0 ||(lastTurn)? b->green[hoverIndex] : b->blue[hoverIndex])
-		validHoverIndex = 0;
-	onBoard = (mousePos.x > offsetX && mousePos.x < screenWidth - offsetX);
-
-	if(onBoard && validHoverIndex && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ) {
-		if(!lastTurn)
-			b->green[hoverIndex] = !b->green[hoverIndex];
-		else
-			b->blue[hoverIndex] = !b->blue[hoverIndex];
-
-		lastTurn = !lastTurn;
+	if(playerColor == -1) {
+		turn = false;
 	}
-		
+
+	if(hoverIndex >= BOARD_LENGHT || hoverIndex < 0 || (playerColor == 0 ? b->blue[hoverIndex] : b->green[hoverIndex]))
+		validHoverIndex = 0;
+
+	if(turn && onBoard && validHoverIndex && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+		move.type = MOVE;
+		move.position = hoverIndex;
+	}
+	else if(turn && IsKeyPressed(32)){
+		// Space
+		move.type = ADVANCE;
+	}
 
 	BeginDrawing();
 	{
 		ClearBackground(DARKGRAY);
 
-		for(int i = 0; i < 256; i++)
+		for(int i = 0; i < BOARD_LENGHT; i++)
 		{
 			Color color = (b->green[i] ? GREEN : (b->blue[i] ? BLUE : BLACK));
+			color = turn ? color : (b->green[i] ? GREEN : (b->blue[i] ? BLUE : BLACK));
 
-			Rectangle bounds = {offsetX + (i % 16) * size, offsetY + (i / 16) * size, size, size};
+			Rectangle bounds = {offsetX + (i % BOARD_SIZE) * size, offsetY + (i / BOARD_SIZE) * size, size, size};
 
-			if(onBoard && hoverIndex == i)
-				color = lastTurn ? SKYBLUE : LIME;
-			if(onBoard && !validHoverIndex && hoverIndex == i)
+			if(turn && onBoard && hoverIndex == i)
+				color = playerColor ? SKYBLUE : LIME;
+			if(turn && onBoard && !validHoverIndex && hoverIndex == i)
 				color = RED;
 
 			DrawRectangleRec(bounds, color);
@@ -66,11 +72,6 @@ bool drawBoard(Board* b){
 	}
 	EndDrawing();
 	
-	// Space
-	if(IsKeyPressed(32)){
-		lastTurn = !lastTurn;
-		return true;
-	}
-
-	return false;
+	
+	return move;
 }
