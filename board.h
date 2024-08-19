@@ -167,3 +167,18 @@ void updateBoardMove(Board* b, Move* move, int turn) {
 		b->blue[move->position] = !b->blue[move->position];
 	}
 }
+
+int checkWinCondition(Board* b) {
+	int bC, gC;
+	bC = gC = 0;
+	for(int i = 0; i < BOARD_LENGHT; i++) {
+		bC += b->blue[i];
+		gC += b->green[i];
+	}
+	
+	if(bC && gC) return 2;
+	if(!bC && !gC) return -1;
+	if(!bC) return 0;
+	if(!gC) return 1;
+}
+

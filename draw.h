@@ -66,7 +66,7 @@ Move drawBoard(Board* b, bool turn, int playerColor){
 
 			DrawRectangleRec(bounds, color);
 
-			if(DEBUG_MODE == true)
+			if(DEBUG_MODE)
 				DrawText(TextFormat("%d", count(b, i)), bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, 20, WHITE);
 		}
 	}
