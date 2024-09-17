@@ -2,14 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <unistd.h>
 #include <errno.h>
 #include "sp_util.h"
 #include "board.h"
 #include "util.h"
 
 #define VERSION "0.0.69"
-#define PORT "42042"
+#define PORT 42042
 
 typedef struct Player {
 	int connectionfd;
@@ -43,7 +42,7 @@ int main() {
 	// Reuse address - stops adress already in use
 	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
 
-	struct sockaddr_in server = {AF_INET, htons(atoi(PORT))};
+	struct sockaddr_in server = {AF_INET, htons(PORT)};
 	
 	if(bind(sockfd, (struct sockaddr*)&server, sizeof(struct sockaddr_in)) == -1) {
 		perror("Couldn't bind socket.\n");
