@@ -15,7 +15,7 @@ void* connectToServer(void* n);
 
 static Board board;
 static bool turn;
-static bool networkStatus;
+static bool networkStatus = true;
 static bool gameStarted;
 static Move move;
 static PlayerColor playerColor;
@@ -224,7 +224,6 @@ void* drawGUI(void* n) {
 			}
 
 			port = atoi(portStr);
-			printf("Port: %d", port);
 
 			break;
 		}

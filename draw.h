@@ -69,8 +69,14 @@ Move drawBoard(Board* b, bool turn, int playerColor){
 
 			DrawRectangleRec(bounds, color);
 
-			if(DEBUG_MODE)
-				DrawText(TextFormat("%d", count(b, i)), bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, 20, WHITE);
+			if(DEBUG_MODE && hoverIndex != i)
+			{
+				int c = count(b, i);
+				DrawText(TextFormat("%d", c), bounds.x + bounds.width / 2 - MeasureText(TextFormat("%d", c), 20) / 2, bounds.y + bounds.height / 2, 20, WHITE);
+			}
+			else if(DEBUG_MODE) {
+				DrawText(TextFormat("%d", i), bounds.x + bounds.width / 2 - MeasureText(TextFormat("%d", i), 20) / 2, bounds.y + bounds.height / 2, 20, WHITE);
+			}
 		}
 	}
 	EndDrawing();
