@@ -23,7 +23,6 @@ typedef struct Game{
 } Game;
 
 void handlePlayer(int connectionfd, struct sockaddr_in addr);
-int getMove(Player* player, Move* move);
 void createGame();
 
 static Game game = {};
@@ -86,9 +85,11 @@ int main() {
 
 	// Send board to both players
 	if(!vspsend(game.green.connectionfd, (void*)&game.board, sizeof(Board))) {
+    printf("Couldn't send board to client.\n");
     gameEnded = true;
   }
 	if(!vspsend(game.blue.connectionfd, (void*)&game.board, sizeof(Board))) {
+    printf("Couldn't send board to client.\n");
     gameEnded = true;
   }
 
@@ -110,24 +111,41 @@ int main() {
 			printf("Terminating server.\n");
 			break;
 		}
-
-		int ret = getMove(turnPlayer, &move);
-
-		if(ret == 0) {
-			printf("Terminating server.\n");
-			break;
-		}
-
-		// Invalid move
-		if(ret == -1) {
-			cspsend(turnPlayer->connectionfd, "E: INVALID MOVE");
-
-			vspsend(turnPlayer->connectionfd, (void*)&game.board, sizeof(Board));
+    
+    // Recive move
+    if(vsprecv(turnPlayer->connectionfd, (void*)&move) <= 0) {
+		  printf("Client disconnected.\n");
+		  printf("Terminating server.\n");
+      break;
+	  }
+	  // Check if move is valid
+	  if(!validMove(&game.board, &move, turn)) {
+		  printf("Move isn't valid.\n");
+      
+      // Send error message to client
+      if(!cspsend(turnPlayer->connectionfd, "E: INVALID MOVE")) {
+        printf("Client disconnected.\n");
+	  	  printf("Terminating server.\n");
+        break;
+      }
+			
+      // Send board to client
+      if(!vspsend(turnPlayer->connectionfd, (void*)&game.board, sizeof(Board))) {
+  		  printf("Client disconnected.\n");
+	  	  printf("Terminating server.\n");
+        break;
+      }
 
 			continue;
-		}
+	  }
 
-		cspsend(turnPlayer->connectionfd, "S");
+    printf("%s:%d: ", inet_ntoa(turnPlayer->addr.sin_addr), ntohs(turnPlayer->addr.sin_port));
+
+		if(!cspsend(turnPlayer->connectionfd, "S")) {
+      printf("Client disconnected.\n");
+	  	printf("Terminating server.\n");
+      break;
+    }
 
 		printf("Move: %d, ", move.type);
 		printf("Move position: %d\n", move.position);
@@ -137,12 +155,12 @@ int main() {
 		updateBoardMove(&game.board, &move, turn);
 
 		// Send both players the updated board
-		if(vspsend(greenCfd, (void*)&game.board, sizeof(Board)) == -1) {
+		if(!vspsend(greenCfd, (void*)&game.board, sizeof(Board))) {
       printf("Client disconnected.\n");
 			printf("Terminating server.\n");
       break;
     }
-		if(vspsend(blueCfd, (void*)&game.board, sizeof(Board)) == -1) {
+		if(!vspsend(blueCfd, (void*)&game.board, sizeof(Board))) {
       printf("Client disconnected.\n");
 			printf("Terminating server.\n");
       break;
@@ -155,24 +173,39 @@ int main() {
 
 			turn = turn == GREEN ? BLUE : GREEN;
 
-			cspsend(greenCfd, "C");
-			cspsend(blueCfd, "C");
+			if(!cspsend(greenCfd, "C")) {
+        printf("Client disconnected.\n");
+        printf("Terminating server.\n");
+        break;
+      }
+			
+      if(!cspsend(blueCfd, "C")) {
+  		  printf("Client disconnected.\n");
+	  	  printf("Terminating server.\n");
+        break;
+      }
+
 			continue;
 		}
 		else if(winCondition == -1) {
 			printf("Game ended with a DRAW.\n");
-			cspsend(greenCfd, "D");
-			cspsend(blueCfd, "D");
+		
+      // Error checking isn't necesarry as the game is over
+      cspsend(greenCfd, "D");	
+      cspsend(blueCfd, "D");
+
 			break;
 		}
 		
 		PlayerColor playerWon = (PlayerColor)winCondition;
 		
 		if(playerWon == GREEN) {
+      // Error checking isn't necesarry as the game is over
 			cspsend(greenCfd, "G");
 			cspsend(blueCfd, "G");
 		}
 		else {
+      // Error checking isn't necesarry as the game is over
 			cspsend(greenCfd, "B");
 			cspsend(blueCfd, "B");
 		}
@@ -243,22 +276,4 @@ void handlePlayer(int connectionfd, struct sockaddr_in addr) {
 		gameStarted = true;
 	}
 
-}
-
-int getMove(Player* player, Move* move) {
-
-	if(vsprecv(player->connectionfd, (void*)move) <= 0) {
-		printf("Client disconnected.\n");
-		return 0;
-	}
-
-	// Check if move is valid
-	if(move == NULL || !validMove(&game.board, move, turn)) {
-		printf("Move isn't valid.\n");
-		return -1;
-	}
-
-	printf("%s:%d: ", inet_ntoa(player->addr.sin_addr), ntohs(player->addr.sin_port));
-
-	return 1;
 }
