@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <string.h>
+
 #define BOARD_SIZE 16
 #define BOARD_LENGHT BOARD_SIZE*BOARD_SIZE
 

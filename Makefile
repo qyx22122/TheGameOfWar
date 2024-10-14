@@ -12,5 +12,7 @@ run-server: server.c
 	mkdir -p bin && gcc -o bin/server server.c && ./bin/server
 run-client: client.c
 	mkdir -p bin && gcc -o bin/client client.c -lraylib && ./bin/client
+run-big_server: BIG_server.c
+	mkdir -p bin && gcc -o bin/BIG_server BIG_server.c && ./bin/BIG_server
 clean:
 	rm -r bin

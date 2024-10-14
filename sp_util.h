@@ -1,12 +1,15 @@
 #pragma once
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 
 // Send functions
 static int sendSize(int sock, size_t size) {
-	int ret = send(sock, &size, sizeof(size), 0);
+	int ret = send(sock, &size, sizeof(size), MSG_NOSIGNAL);
 
 	if(ret == -1) {
 		perror("Sending size failed.\n");
@@ -26,7 +29,7 @@ int ispsend(int sock, int x) {
 		return -1;
 	}
 
-	int ret = send(sock, &x, size, 0);
+	int ret = send(sock, &x, size, MSG_NOSIGNAL);
 
 	if(ret == -1) {
 		perror("Sending failed.\n");
@@ -45,7 +48,7 @@ int fspsend(int sock, float x) {
 		return -1;
 	}
 
-	int ret = send(sock, &x, size, 0);
+	int ret = send(sock, &x, size, MSG_NOSIGNAL);
 
 	if(ret == -1) {
 		perror("Sending failed.\n");
@@ -64,7 +67,7 @@ int bspsend(int sock, bool x) {
 		return -1;
 	}
 
-	int ret = send(sock, &x, size, 0);
+	int ret = send(sock, &x, size, MSG_NOSIGNAL);
 
 	if(ret == -1) {
 		perror("Sending failed.\n");
@@ -85,7 +88,7 @@ int cspsend(int sock, char* x) {
 		return -1;
 	}
 
-	int ret = send(sock, x, size, 0);
+	int ret = send(sock, x, size, MSG_NOSIGNAL);
 
 	if(ret == -1) {
 		perror("Sending failed.\n");
@@ -102,7 +105,7 @@ int vspsend(int sock, void* x, size_t size) {
 		return -1;
 	}
 
-	int ret = send(sock, x, size, 0);
+	int ret = send(sock, x, size, MSG_NOSIGNAL);
 
 	if(ret == -1) {
 		perror("Sending failed.\n");
@@ -194,7 +197,7 @@ int csprecv(int sock, char** value) {
 		return 0;
 	}
 	
-	*value = malloc(size);
+	*value = (char*)malloc(size);
 
 	if(*value == NULL) {
 		printf("Reciving failed (Overflow).\n");

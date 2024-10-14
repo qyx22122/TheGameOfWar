@@ -83,9 +83,14 @@ int main() {
 	}
 
 	close(sockfd);
+
 	// Send board to both players
-	vspsend(game.green.connectionfd, (void*)&game.board, sizeof(Board));
-	vspsend(game.blue.connectionfd, (void*)&game.board, sizeof(Board));
+	if(!vspsend(game.green.connectionfd, (void*)&game.board, sizeof(Board))) {
+    gameEnded = true;
+  }
+	if(!vspsend(game.blue.connectionfd, (void*)&game.board, sizeof(Board))) {
+    gameEnded = true;
+  }
 
 	Move move;
 
@@ -132,8 +137,16 @@ int main() {
 		updateBoardMove(&game.board, &move, turn);
 
 		// Send both players the updated board
-		vspsend(greenCfd, (void*)&game.board, sizeof(Board));
-		vspsend(blueCfd, (void*)&game.board, sizeof(Board));
+		if(vspsend(greenCfd, (void*)&game.board, sizeof(Board)) == -1) {
+      printf("Client disconnected.\n");
+			printf("Terminating server.\n");
+      break;
+    }
+		if(vspsend(blueCfd, (void*)&game.board, sizeof(Board)) == -1) {
+      printf("Client disconnected.\n");
+			printf("Terminating server.\n");
+      break;
+    }
 
 		int winCondition = checkWinCondition(&game.board);
 		
@@ -170,6 +183,9 @@ int main() {
 
 	close(game.green.connectionfd);
 	close(game.blue.connectionfd);
+  close(sockfd);
+
+  main();
 
 	return 0;
 }
