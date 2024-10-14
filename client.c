@@ -16,7 +16,7 @@ void* connectToServer(void* n);
 
 static Board board;
 static bool turn;
-static bool networkStatus = true;
+static bool networkStatus;
 static bool gameStarted;
 static Move move;
 static PlayerColor playerColor;
@@ -34,7 +34,6 @@ int main() {
 }
 void* connectToServer(void* n){
 
-	networkStatus = true;
 	playerColor = NONE;
 	gameStarted = false;
 	playerWon = -1;
@@ -226,6 +225,7 @@ serverSelection:
 		}
 	}
 
+  // To prevent connections to server after closing the window on the server selection screen
   if(windowShouldClose()) {
     goto close;
   }
@@ -236,11 +236,10 @@ serverSelection:
 	while(!windowShouldClose() && !gameStarted && networkStatus) {
 		drawLoading(ip, port);
 	}
-
+  
 	if(!networkStatus && !windowShouldClose()) {
     printf("Failed to connect!\n");
 		failedConnection = true;
-    gameStarted = false;
 		goto serverSelection;
 	}
   
@@ -250,11 +249,10 @@ serverSelection:
 		move = drawBoard(&board, turn, (int)playerColor);
 	}
 	
+  // Server probably closed mid game (other player disconnected)
   if(playerWon == -1 && !windowShouldClose()) {
     pthread_cancel(thread_NET);
     failedConnection = true;
-    networkStatus = false;
-    gameStarted = false;
     goto serverSelection;
   }
 
@@ -264,12 +262,10 @@ serverSelection:
 	while(!windowShouldClose()) {
 		bool ret = drawEndScreen(playerWon, playerColor, &board);
 
-		if(ret || playerWon == -1) {
+    // Go back to the server selection
+		if(ret) {
       pthread_cancel(thread_NET);
-      networkStatus = false;
-      gameStarted = false;
       failedConnection = false;
-      playerWon = NONE;
 			goto serverSelection;
 		}
 	}
