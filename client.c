@@ -226,6 +226,10 @@ serverSelection:
 		}
 	}
 
+  if(windowShouldClose()) {
+    goto close;
+  }
+
 	pthread_create(&thread_NET, NULL, connectToServer, NULL);
   networkStatus = true;
 
@@ -269,6 +273,8 @@ serverSelection:
 			goto serverSelection;
 		}
 	}
+
+close:
 	
 	closeWindow();
 	pthread_cancel(thread_NET);
