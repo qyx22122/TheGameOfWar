@@ -40,30 +40,10 @@ void* connectToServer(void* n){
 	turn = false;
 	move.type = NONE;
 
-  close(sockfd);
-	
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-	if(sockfd == -1) {
-		perror("Couldn't create socket.\n");
-		networkStatus = false;
-		return 0;
-	}
-
-	struct sockaddr_in serverAddr;
-	bzero(&serverAddr, sizeof(serverAddr));
-	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(port);
-	serverAddr.sin_addr.s_addr = inet_addr(ip);
-
-	printf("Connecting to %s:%d\n", ip, port);
-
-	if(connect(sockfd, (struct sockaddr*)&serverAddr, (socklen_t)sizeof(serverAddr)) == -1) {
-		perror("Couldn't connect to server.\n");
-		networkStatus = false;
-    close(sockfd);
-		return 0;
-	}
+  if(initcs(&sockfd, ip, port) == -1) {
+    networkStatus = false;
+    return 0;
+  }
 
 	printf("Connected to server.\n");
 
@@ -78,7 +58,6 @@ void* connectToServer(void* n){
 
 	if(color[0] == 'E') {
 		printf("Server Error -- %s\n", color);
-		close(sockfd);
 		networkStatus = false;
 		return 0;
 	}
@@ -178,7 +157,6 @@ void* connectToServer(void* n){
 
 	networkStatus = false;
   gameStarted = false;
-	close(sockfd);
 	return 0;
 }
 
@@ -274,7 +252,7 @@ close:
 	
 	closeWindow();
 	pthread_cancel(thread_NET);
-	close(sockfd);
+	closes(sockfd);
 	
 	free(ip);
 

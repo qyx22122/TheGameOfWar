@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <errno.h>
 #include "sp_util.h"
 #include "board.h"
 #include "util.h"
@@ -12,7 +11,6 @@
 
 typedef struct Player {
 	int connectionfd;
-	struct sockaddr_in addr;
 } Player;
 
 typedef struct Game{
@@ -22,7 +20,7 @@ typedef struct Game{
 	int moveCount;
 } Game;
 
-void handlePlayer(int connectionfd, struct sockaddr_in addr);
+void handlePlayer(int connectionfd);
 void createGame();
 
 static Game game = {};
@@ -31,28 +29,13 @@ static bool gameEnded = false;
 static PlayerColor turn = GREEN;
 
 int main() {
-	int sockfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-	int option = 1;
 	
-	if(sockfd == -1) {
-		perror("Couldn't create socket.\n");
-		return 1;
-	}
-	// Reuse address - stops adress already in use
-	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+  int sockfd = -1;
+  if(initss(&sockfd, PORT) == -1) {
+    perror("Failed to initialze server socket.\n");
+    return 1;
+  }
 
-	struct sockaddr_in server = {AF_INET, htons(PORT)};
-	
-	if(bind(sockfd, (struct sockaddr*)&server, sizeof(struct sockaddr_in)) == -1) {
-		perror("Couldn't bind socket.\n");
-		return 1;
-	}
-
-	if(listen(sockfd, 5) == -1) {
-		perror("No ears. (Couldn't listen)\n");
-		return 1;
-	}
-	
 	createGame();
 	printf("Created game.\n");
 	printBoard(&game.board);
@@ -60,28 +43,19 @@ int main() {
 	printf("Server has started.\n");
 
 	while(!gameStarted) {
+    
+    int newsockfd = -1;
+    int ret = acceptss(sockfd, &newsockfd);
+    if(ret == -1)
+      return 1;
 
-		struct sockaddr_in clientAddr;
-		socklen_t clientAddrLenght = sizeof(clientAddr);
+    if(ret == 1)
+      continue;
 
-		int newsockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrLenght);
-		
-		if(newsockfd == -1 && errno != 11) {
-			perror("Couldn't accept the truth. (Accept failed)\n");
-			return 1;
-		}
-		else if(newsockfd == -1)
-			continue;
-
-		if(&clientAddr == NULL) {
-			perror("Couldn't get address.\n");
-			return -1;
-		}
-
-		handlePlayer(newsockfd, clientAddr);
+		handlePlayer(newsockfd);
 	}
 
-	close(sockfd);
+	closes(sockfd);
 
 	// Send board to both players
 	if(!vspsend(game.green.connectionfd, (void*)&game.board, sizeof(Board))) {
@@ -138,8 +112,6 @@ int main() {
 
 			continue;
 	  }
-
-    printf("%s:%d: ", inet_ntoa(turnPlayer->addr.sin_addr), ntohs(turnPlayer->addr.sin_port));
 
 		if(!cspsend(turnPlayer->connectionfd, "S")) {
       printf("Client disconnected.\n");
@@ -214,9 +186,9 @@ int main() {
 
 	}
 
-	close(game.green.connectionfd);
-	close(game.blue.connectionfd);
-  close(sockfd);
+	closes(game.green.connectionfd);
+	closes(game.blue.connectionfd);
+  closes(sockfd);
 
   main();
 
@@ -232,9 +204,7 @@ void createGame() {
 	game.blue.connectionfd = -1;
 }
 
-void handlePlayer(int connectionfd, struct sockaddr_in addr) {
-	printf("Client connected (%s:%d)\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-	
+void handlePlayer(int connectionfd) {
 	char* clientVersion;
 	csprecv(connectionfd, &clientVersion);
 	printf("Client version: %s\n", clientVersion);
@@ -249,7 +219,7 @@ void handlePlayer(int connectionfd, struct sockaddr_in addr) {
 
 		cspsend(connectionfd, errorMsg);
 		
-		close(connectionfd);
+		closes(connectionfd);
 		return;
 	}
 
@@ -262,8 +232,6 @@ void handlePlayer(int connectionfd, struct sockaddr_in addr) {
 		cspsend(connectionfd, color);
 
 		game.green.connectionfd = connectionfd;
-		game.green.addr = addr;
-
 	}
 	else if(game.blue.connectionfd == -1) {
 		printf("Client color: BLUE\n");
@@ -271,8 +239,6 @@ void handlePlayer(int connectionfd, struct sockaddr_in addr) {
 		cspsend(connectionfd, color);
 
 		game.blue.connectionfd = connectionfd;
-		game.blue.addr = addr;
-
 		gameStarted = true;
 	}
 
