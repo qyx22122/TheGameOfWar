@@ -1,35 +1,75 @@
 #pragma once
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#if defined WIN32
+#include <winsock2.h>
+#include <winsock.h>
+#include <ws2tcpip.h>
+
+#define MSG_NOSIGNAL 0
+
+#else
+#define closesocket close
 #include <sys/socket.h>
-#include <errno.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 
+#endif
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+
+static void clearWinsock() {
+#if defined WIN32
+	WSACleanup();
+#endif
+}
+
+void closes(int sockfd) {
+  closesocket(sockfd);
+  clearWinsock();
+}
+
 // Initialize server socket & listen for connections
 int initss(int* sockfd, int port) {
+
+#if defined WIN32
+	WSADATA wsaData;
+	int res = WSAStartup(MAKEWORD(2 ,2), &wsaData);
+	if (res != 0) {
+		perror("Error at WSASturtup.\n");
+		return -1;
+	}
+#endif
+
   *sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	int option = 1;
 	
 	if(*sockfd == -1) {
 		perror("Couldn't create socket.\n");
+    closes(*sockfd);
 		return -1;
 	}
+
+#if !(defined WIN32)
 	// Reuse address - stops adress already in use
 	setsockopt(*sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+
+#endif
 
 	struct sockaddr_in server = {AF_INET, htons(port)};
 	
 	if(bind(*sockfd, (struct sockaddr*)&server, sizeof(struct sockaddr_in)) == -1) {
 		perror("Couldn't bind socket.\n");
-		return -1;
+		closes(*sockfd);
+    return -1;
 	}
 
 	if(listen(*sockfd, 5) == -1) {
 		perror("No ears. (Couldn't listen)\n");
-		return -1;
+		closes(*sockfd);
+    return -1;
 	}
 
   return 0;
@@ -43,7 +83,8 @@ int acceptss(int sockfd, int* newsockfd) {
 		
 		if(*newsockfd == -1 && errno != 11) {
 			perror("Couldn't accept the truth. (Accept failed)\n");
-			return -1;
+			closes(*newsockfd);
+      return -1;
 		}
 		else if(*newsockfd == -1)
       return 1;
@@ -52,15 +93,26 @@ int acceptss(int sockfd, int* newsockfd) {
 }
 // Initialize client socket & connect to server
 int initcs(int* sockfd, char* ip, int port) {
+
+#if defined WIN32
+	WSADATA wsaData;
+	int res = WSAStartup(MAKEWORD(2 ,2), &wsaData);
+	if (res != 0) {
+		perror("Error at WSASturtup.\n");
+		return -1;
+	}
+#endif
+
 	*sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
 	if(*sockfd == -1) {
 		perror("Couldn't create socket.\n");
-		return -1;
+		closes(*sockfd);
+    return -1;
 	}
 
 	struct sockaddr_in serverAddr;
-	bzero(&serverAddr, sizeof(serverAddr));
+	memset(&serverAddr, 0, sizeof(serverAddr));
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_port = htons(port);
 	serverAddr.sin_addr.s_addr = inet_addr(ip);
@@ -69,20 +121,17 @@ int initcs(int* sockfd, char* ip, int port) {
 
 	if(connect(*sockfd, (struct sockaddr*)&serverAddr, (socklen_t)sizeof(serverAddr)) == -1) {
 		perror("Couldn't connect to server.\n");
-		return -1;
+		closes(*sockfd);
+    return -1;
 	}
 
   return 0;
 
 }
 
-void closes(int sockfd) {
-  close(sockfd);
-}
-
 // Send functions
 static int sendSize(int sock, size_t size) {
-	int ret = send(sock, &size, sizeof(size), MSG_NOSIGNAL);
+	int ret = send(sock, (char*)&size, sizeof(size), MSG_NOSIGNAL);
 
 	if(ret == -1) {
 		perror("Sending size failed.\n");
@@ -102,7 +151,7 @@ int ispsend(int sock, int x) {
 		return -1;
 	}
 
-	int ret = send(sock, &x, size, MSG_NOSIGNAL);
+	int ret = send(sock, (char*)&x, size, MSG_NOSIGNAL);
 
 	if(ret == -1) {
 		perror("Sending failed.\n");
@@ -121,7 +170,7 @@ int fspsend(int sock, float x) {
 		return -1;
 	}
 
-	int ret = send(sock, &x, size, MSG_NOSIGNAL);
+	int ret = send(sock, (char*)&x, size, MSG_NOSIGNAL);
 
 	if(ret == -1) {
 		perror("Sending failed.\n");
@@ -140,7 +189,7 @@ int bspsend(int sock, bool x) {
 		return -1;
 	}
 
-	int ret = send(sock, &x, size, MSG_NOSIGNAL);
+	int ret = send(sock, (char*)&x, size, MSG_NOSIGNAL);
 
 	if(ret == -1) {
 		perror("Sending failed.\n");
@@ -178,7 +227,7 @@ int vspsend(int sock, void* x, size_t size) {
 		return -1;
 	}
 
-	int ret = send(sock, x, size, MSG_NOSIGNAL);
+	int ret = send(sock, (char*)x, size, MSG_NOSIGNAL);
 
 	if(ret == -1) {
 		perror("Sending failed.\n");
@@ -192,7 +241,7 @@ int vspsend(int sock, void* x, size_t size) {
 
 static size_t recvSize(int sock) {
 	size_t size = 0;
-	ssize_t ret = recv(sock, &size, sizeof(size), 0);
+	ssize_t ret = recv(sock, (char*)&size, sizeof(size), 0);
 
 
 	if(ret == -1) {
@@ -210,7 +259,7 @@ int isprecv(int sock, int* value) {
 		return 0;
 	}
 
-	ssize_t ret = recv(sock, value, size, 0);
+	ssize_t ret = recv(sock, (char*)value, size, 0);
 
 	if(ret == -1) {
 		perror("Reciving failed.\n");
@@ -230,7 +279,7 @@ int fsprecv(int sock, float* value) {
 		return 0;
 	}
 
-	ssize_t ret = recv(sock, value, size, 0);
+	ssize_t ret = recv(sock, (char*)value, size, 0);
 
 	if(ret == -1) {
 		perror("Reciving failed.\n");
@@ -250,7 +299,7 @@ int bsprecv(int sock, bool* value) {
 		return 0;
 	}
 
-	ssize_t ret = recv(sock, value, size, 0);
+	ssize_t ret = recv(sock, (char*)value, size, 0);
 
 	if(ret == -1) {
 		perror("Reciving failed.\n");
@@ -299,7 +348,7 @@ int vsprecv(int sock, void* value) {
 		return 0;
 	}
 
-	ssize_t ret = recv(sock, value, size, 0);
+	ssize_t ret = recv(sock, (char*)value, size, 0);
 
 	if(ret == -1) {
 		perror("Reciving failed.\n");

@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include "sp_util.h"
 #include "board.h"
-#include "util.h"
 
 #define VERSION "0.0.69"
 #define PORT 42042

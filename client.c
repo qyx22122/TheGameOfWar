@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "sp_util.h"
 #include "util.h"
+#include "sp_util.h"
 #include "board.h"
 #include "draw.h"
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdio.h>
 #include <string.h>
 
@@ -183,5 +185,7 @@ int checkWinCondition(Board* b) {
 	if(!bC && !gC) return -1;
 	if(!bC) return 0;
 	if(!gC) return 1;
+
+  return 0;
 }
 
