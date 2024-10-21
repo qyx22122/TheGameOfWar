@@ -1,10 +1,40 @@
 #pragma once
 
 #if defined WIN32
+// Fix for raylib
+#define NOGDI // All GDI defines and routines
+#define NOUSER // All USER defines and routines
+#define NOSOUND // Sound driver routines
+#define NOICONS // IDI_*
+
+typedef struct point {
+  long int x;
+  long int y;
+} point_w;
+
+typedef struct tagMSG {
+  long int hwnd;
+  unsigned int message;
+  unsigned int wParam;
+  long int lParam;
+  unsigned long int time;
+  point_w pt;
+  unsigned long int lPrivate;
+} MSG, *PMSG, *NPMSG, *LPMSG;
+
+#include <windows.h>
+#include <mmsystem.h>
+
 #include <winsock2.h>
 #include <winsock.h>
 #include <ws2tcpip.h>
 
+// Fix for raylib
+#undef near
+#undef far
+#undef tagMSG
+
+// Fix for send
 #define MSG_NOSIGNAL 0
 
 #else

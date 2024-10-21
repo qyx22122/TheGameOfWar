@@ -1,7 +1,11 @@
 #include "board.h"
 #include "util.h"
 
+#if defined WIN32
+#include "raylib-5.0_win64_mingw-w64/raylib.h"
+#else
 #include <raylib.h>
+#endif
 
 #define MAX_IP_LENGHT 16
 #define MAX_PORT_LENGHT 6
