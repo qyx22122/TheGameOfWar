@@ -30,7 +30,7 @@ Move drawBoard(Board* b, bool turn, int playerColor){
 
 	Vector2 mousePos = GetMousePosition();
 	
-	int hoverIndex = (mousePos.x - offsetX)/size + ((int)(mousePos.y - offsetY) / (float)size)*BOARD_SIZE;
+	int hoverIndex = (mousePos.x - offsetX)/size + ((int)(mousePos.y - offsetY) / size)*BOARD_SIZE;
 
 	bool validHoverIndex = 1;
 	bool onBoard = (mousePos.x > offsetX && mousePos.x < screenWidth - offsetX);
@@ -63,7 +63,7 @@ Move drawBoard(Board* b, bool turn, int playerColor){
 			Color color = (b->green[i] ? GREEN : (b->blue[i] ? BLUE : BLACK));
 			color = turn ? color : (b->green[i] ? GREEN : (b->blue[i] ? BLUE : BLACK));
 
-			Rectangle bounds = {(float)(offsetX + (i % BOARD_SIZE) * size), (float)(offsetY + ((float)i / BOARD_SIZE) * size), (float)size, (float)size};
+			Rectangle bounds = {(float)(offsetX + (i % BOARD_SIZE) * size), (float)(offsetY + (i / BOARD_SIZE) * size), (float)size, (float)size};
 
 			if(turn && onBoard && hoverIndex == i)
 				color = playerColor ? SKYBLUE : LIME;

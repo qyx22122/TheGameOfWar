@@ -24,7 +24,7 @@ static pthread_t thread_NET;
 static int playerWon;
 
 static char* ip;
-static uint16_t port;
+static int port;
 
 static int sockfd;
 
@@ -74,7 +74,7 @@ void* connectToServer(void* n){
 	free(color);
 	
 	// Recive board update when game starts
-	bzero(&board, sizeof(board));
+	memset(&board, 0, sizeof(board));
 	vsprecv(sockfd, (void*)&board);
 
 	gameStarted = true;
