@@ -1,7 +1,8 @@
 CC=gcc
 
 SOCKET_ARGS=
-RAYLIB_ARGS=-L. -lm -lraylib 
+# -Wl,-R flag to . and ./bin/ for running from the base project directory
+RAYLIB_ARGS=-L./bin/ -lm -lraylib -Wl,-R. -Wl,-R./bin/
 
 # Set the WINDOWS flag on by default when running on Windows
 ifeq ($(OS),Windows_NT)
