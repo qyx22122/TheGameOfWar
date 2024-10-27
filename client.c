@@ -251,7 +251,6 @@ serverSelection:
 close:
 	
 	closeWindow();
-	pthread_cancel(thread_NET);
 	closes(sockfd);
 	
 	free(ip);
