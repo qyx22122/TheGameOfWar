@@ -5,7 +5,7 @@
 #include "sp_util.h"
 #include "board.h"
 
-#define VERSION "0.0.69"
+#define VERSION "0.0.0.1"
 #define PORT 42042
 
 typedef struct Player {
