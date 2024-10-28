@@ -9,7 +9,7 @@
 #include "board.h"
 #include "draw.h"
 
-#define VERSION "0.0.0.1"
+#define VERSION "0.0.69.1"
 
 void drawGUI();
 void* connectToServer(void* n);

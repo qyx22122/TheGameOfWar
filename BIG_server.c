@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <pthread.h>
 #include "sp_util.h"
 #include "board.h"
 
-#define VERSION "0.0.69"
+#define VERSION "0.0.69.1"
 #define PORT 42042
+#define THREADNUM 10
 
 typedef struct Player {
 	int connectionfd;
@@ -19,13 +21,19 @@ typedef struct Game{
 	int moveCount;
 } Game;
 
-void handlePlayer(int connectionfd);
-void createGame();
+typedef struct GameThread{
+	Game game;
+	bool gameStarted;
+	bool gameEnded;
+	PlayerColor turn;
+	pthread_t thread;
+} GameThread;
 
-static Game game = {};
-static bool gameStarted = false;
-static bool gameEnded = false;
-static PlayerColor turn = GREEN;
+void handlePlayer(int connectionfd, int i);
+void createGame(int i);
+void* manageThread(void* pi);
+
+static GameThread gameThreads[THREADNUM] = {};
 
 int main() {
 	
@@ -34,52 +42,57 @@ int main() {
     perror("Failed to initialze server socket.\n");
     return 1;
   }
-
-	createGame();
-	printf("Created game.\n");
-	printBoard(&game.board);
-
 	printf("Server has started.\n");
+	for (int i = 0; i < THREADNUM; i++){
 
-	while(!gameStarted) {
+		createGame(i);
+		printf("Created game %d.\n",i);
+		printBoard(&gameThreads[i].game.board);
+
+
+		while(!gameThreads[i].gameStarted){
     
-    int newsockfd = -1;
-    int ret = acceptss(sockfd, &newsockfd);
-    if(ret == -1)
-      return 1;
+			int newsockfd = -1;
+			int ret = acceptss(sockfd, &newsockfd);
+			if(ret == -1) return 1;
+			if(ret == 1) continue;
 
-    if(ret == 1)
-      continue;
+			handlePlayer(newsockfd, i);
 
-		handlePlayer(newsockfd);
+		}
+		int i2 = i;
+		pthread_create(&gameThreads[i2].thread, NULL, &manageThread, (void*)&i2);
+
 	}
-
 	closes(sockfd);
+	main();
+}
 
+void* manageThread(void* pi){
+	int i = *(int*)pi;
 	// Send board to both players
-	if(!vspsend(game.green.connectionfd, (void*)&game.board, sizeof(Board))) {
+	if(!vspsend(gameThreads[i].game.green.connectionfd, (void*)&(gameThreads[i].game.board), sizeof(Board))) {
     printf("Couldn't send board to client.\n");
-    gameEnded = true;
+    gameThreads[i].gameEnded = true;
   }
-	if(!vspsend(game.blue.connectionfd, (void*)&game.board, sizeof(Board))) {
+	if(!vspsend(gameThreads[i].game.blue.connectionfd, (void*)&(gameThreads[i].game.board), sizeof(Board))) {
     printf("Couldn't send board to client.\n");
-    gameEnded = true;
+    gameThreads[i].gameEnded = true;
   }
-
 	Move move;
 
-	while(!gameEnded) {
-		Player* turnPlayer = turn==GREEN? &game.green : &game.blue;
-		int greenCfd = game.green.connectionfd;
-		int blueCfd = game.blue.connectionfd;
+	while(!gameThreads[i].gameEnded) {
+		Player* turnPlayer = gameThreads[i].turn==GREEN? &gameThreads[i].game.green : &gameThreads[i].game.blue;
+		int greenCfd = gameThreads[i].game.green.connectionfd;
+		int blueCfd = gameThreads[i].game.blue.connectionfd;
 
 		// Send move notice
-		if(!bspsend(greenCfd, turn==GREEN)) {
+		if(!bspsend(greenCfd, gameThreads[i].turn==GREEN)) {
 			printf("Client disconnected.\n");
 			printf("Terminating server.\n");
 			break;
 		}
-		if(!bspsend(blueCfd, turn==BLUE)) {
+		if(!bspsend(blueCfd, gameThreads[i].turn==BLUE)) {
 			printf("Client disconnected.\n");
 			printf("Terminating server.\n");
 			break;
@@ -92,7 +105,7 @@ int main() {
       break;
 	  }
 	  // Check if move is valid
-	  if(!validMove(&game.board, &move, turn)) {
+	  if(!validMove(&gameThreads[i].game.board, &move, gameThreads[i].turn)) {
 		  printf("Move isn't valid.\n");
       
       // Send error message to client
@@ -103,7 +116,7 @@ int main() {
       }
 			
       // Send board to client
-      if(!vspsend(turnPlayer->connectionfd, (void*)&game.board, sizeof(Board))) {
+      if(!vspsend(turnPlayer->connectionfd, (void*)&gameThreads[i].game.board, sizeof(Board))) {
   		  printf("Client disconnected.\n");
 	  	  printf("Terminating server.\n");
         break;
@@ -122,27 +135,27 @@ int main() {
 		printf("Move position: %d\n", move.position);
 		
 		// Apply the move on internal board
-		game.moveCount++;
-		updateBoardMove(&game.board, &move, turn);
+		gameThreads[i].game.moveCount++;
+		updateBoardMove(&gameThreads[i].game.board, &move, gameThreads[i].turn);
 
 		// Send both players the updated board
-		if(!vspsend(greenCfd, (void*)&game.board, sizeof(Board))) {
+		if(!vspsend(greenCfd, (void*)&gameThreads[i].game.board, sizeof(Board))) {
       printf("Client disconnected.\n");
 			printf("Terminating server.\n");
       break;
     }
-		if(!vspsend(blueCfd, (void*)&game.board, sizeof(Board))) {
+		if(!vspsend(blueCfd, (void*)&gameThreads[i].game.board, sizeof(Board))) {
       printf("Client disconnected.\n");
 			printf("Terminating server.\n");
       break;
     }
 
-		int winCondition = checkWinCondition(&game.board);
+		int winCondition = checkWinCondition(&gameThreads[i].game.board);
 		
 		if(winCondition == 2) {
 			printf("Updated board sent to both players.\n");
 
-			turn = turn == GREEN ? BLUE : GREEN;
+			gameThreads[i].turn = gameThreads[i].turn == GREEN ? BLUE : GREEN;
 
 			if(!cspsend(greenCfd, "C")) {
         printf("Client disconnected.\n");
@@ -185,25 +198,21 @@ int main() {
 
 	}
 
-	closes(game.green.connectionfd);
-	closes(game.blue.connectionfd);
-  closes(sockfd);
-
-  main();
-
-	return 0;
+	closes(gameThreads[i].game.green.connectionfd);
+	closes(gameThreads[i].game.blue.connectionfd);
 }
 
-void createGame() {
-	gameStarted = false;
-	turn = GREEN;
-	game.moveCount = 0;
-	initBoard(&(game.board));
-	game.green.connectionfd = -1;
-	game.blue.connectionfd = -1;
+void createGame(int i) {
+	gameThreads[i].gameStarted = false;
+	gameThreads[i].turn = GREEN;
+	gameThreads[i].game.moveCount = 0;
+	initBoard(&(gameThreads[i].game.board));
+	gameThreads[i].game.green.connectionfd = -1;
+	gameThreads[i].game.blue.connectionfd = -1;
 }
 
-void handlePlayer(int connectionfd) {
+void handlePlayer(int connectionfd, int i) {
+	printf("\n%d\n\n",connectionfd);
 	char* clientVersion;
 	csprecv(connectionfd, &clientVersion);
 	printf("Client version: %s\n", clientVersion);
@@ -225,20 +234,20 @@ void handlePlayer(int connectionfd) {
 	free(clientVersion);
 	
 	// Asign color
-	if(game.green.connectionfd == -1) {
+	if(gameThreads[i].game.green.connectionfd == -1) {
 		printf("Client color: GREEN\n");
 		char* color = "G";
 		cspsend(connectionfd, color);
 
-		game.green.connectionfd = connectionfd;
+		gameThreads[i].game.green.connectionfd = connectionfd;
 	}
-	else if(game.blue.connectionfd == -1) {
+	else if(gameThreads[i].game.blue.connectionfd == -1) {
 		printf("Client color: BLUE\n");
 		char* color = "B";
 		cspsend(connectionfd, color);
 
-		game.blue.connectionfd = connectionfd;
-		gameStarted = true;
+		gameThreads[i].game.blue.connectionfd = connectionfd;
+		gameThreads[i].gameStarted = true;
 	}
 
 }
