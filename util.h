@@ -1,6 +1,9 @@
-#include "stdbool.h"
+#pragma once
 
-#define DEBUG_MODE 1
+#include <stdbool.h>
+#include <string.h>
+
+#define DEBUG_MODE 0
 
 int min(int x, int y) {
 	return x < y ? x : y;

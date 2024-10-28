@@ -1,3 +1,8 @@
+#pragma once
+
+#include <stdio.h>
+#include <string.h>
+
 #define BOARD_SIZE 16
 #define BOARD_LENGHT BOARD_SIZE*BOARD_SIZE
 
@@ -42,7 +47,7 @@ bool validMove(Board* b, Move* move, int turn) {
 
 void initBoard(Board* b) {
 	for(int i = 0; i < BOARD_LENGHT; i++) b->blue[i] = b->green[i] = 0;
-	char SP[] = "000000000000000001100100001001100110111001110110000001000010000000000001100000000000000110000000";
+	char SP[] = "000000000000000001100110011001100110011001100110";
 	for(int i = 0; i < strlen(SP); i++) b->blue[i] = SP[i] - '0';
 	for(int i = BOARD_LENGHT-1; i > BOARD_LENGHT-1-strlen(SP); i--) b->green[i] = SP[BOARD_LENGHT-1-i] - '0';
 }
@@ -180,5 +185,7 @@ int checkWinCondition(Board* b) {
 	if(!bC && !gC) return -1;
 	if(!bC) return 0;
 	if(!gC) return 1;
+
+  return 0;
 }
 

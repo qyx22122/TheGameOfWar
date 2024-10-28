@@ -3,14 +3,15 @@
 #include <string.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include "sp_util.h"
+#include <unistd.h>
 #include "util.h"
+#include "sp_util.h"
 #include "board.h"
 #include "draw.h"
 
-#define VERSION "0.0.69"
+#define VERSION "0.0.69.1"
 
-void* drawGUI(void* n);
+void drawGUI();
 void* connectToServer(void* n);
 
 static Board board;
@@ -20,56 +21,29 @@ static bool gameStarted;
 static Move move;
 static PlayerColor playerColor;
 static pthread_t thread_NET;
-static pthread_t thread_GUI;
 static int playerWon;
 
 static char* ip;
-static uint16_t port;
+static int port;
 
 static int sockfd;
 
 int main() {
-	
-	port = 42042;
-
-	pthread_create(&thread_GUI, NULL, drawGUI, NULL);
-	
-	pthread_join(thread_GUI, NULL);
-	
-	close(sockfd);
-
+  drawGUI();
 	return 0;
 }
 void* connectToServer(void* n){
 
-	networkStatus = true;
 	playerColor = NONE;
 	gameStarted = false;
 	playerWon = -1;
 	turn = false;
 	move.type = NONE;
-	
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-	if(sockfd == -1) {
-		perror("Couldn't create socket.\n");
-		networkStatus = false;
-		return 0;
-	}
-
-	struct sockaddr_in serverAddr;
-	bzero(&serverAddr, sizeof(serverAddr));
-	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(port);
-	serverAddr.sin_addr.s_addr = inet_addr(ip);
-
-	printf("Connecting to %s:%d\n", ip, port);
-
-	if(connect(sockfd, (struct sockaddr*)&serverAddr, (socklen_t)sizeof(serverAddr)) == -1) {
-		perror("Couldn't connect to server.\n");
-		networkStatus = false;
-		return 0;
-	}
+  if(initcs(&sockfd, ip, port) == -1) {
+    networkStatus = false;
+    return 0;
+  }
 
 	printf("Connected to server.\n");
 
@@ -84,7 +58,6 @@ void* connectToServer(void* n){
 
 	if(color[0] == 'E') {
 		printf("Server Error -- %s\n", color);
-		close(sockfd);
 		networkStatus = false;
 		return 0;
 	}
@@ -101,7 +74,7 @@ void* connectToServer(void* n){
 	free(color);
 	
 	// Recive board update when game starts
-	bzero(&board, sizeof(board));
+	memset(&board, 0, sizeof(board));
 	vsprecv(sockfd, (void*)&board);
 
 	gameStarted = true;
@@ -183,24 +156,24 @@ void* connectToServer(void* n){
 	}
 
 	networkStatus = false;
-	close(sockfd);
+  gameStarted = false;
 	return 0;
 }
 
-void* drawGUI(void* n) {
+void drawGUI() {
 	initWindow("The Game Of War", 800, 800);
 
 	ip = malloc(17*sizeof(char));
 
 	if(ip == NULL) {
 		perror("Couldn't allocate ip string.\n");
-		return 0;
+		return;
 	}
 
 	char* portStr = malloc(6*sizeof(char));
 	if(portStr == NULL) {
 		perror("Couldn't allocate port string.\n");
-		return 0;
+		return;
 	}
 
 	strcpy(ip, "127.0.0.1");
@@ -208,11 +181,12 @@ void* drawGUI(void* n) {
 
 	int ipLenght = strlen(ip);
 	int portLenght = strlen(portStr);
-	bool invalidAddress = false;
-	bool failedConnection = false;
 	
-	serverSelection:
-
+  bool failedConnection = false;
+  bool invalidAddress = false;
+	
+serverSelection:
+  
 	while(!windowShouldClose()) {
 		bool ret = drawServerSelection(ip, &ipLenght, portStr, &portLenght, &invalidAddress, failedConnection);
 
@@ -224,46 +198,62 @@ void* drawGUI(void* n) {
 			}
 
 			port = atoi(portStr);
-			printf("Port: %d", port);
 
 			break;
 		}
 	}
 
+  // To prevent connections to server after closing the window on the server selection screen
+  if(windowShouldClose()) {
+    goto close;
+  }
+
 	pthread_create(&thread_NET, NULL, connectToServer, NULL);
+  networkStatus = true;
 
 	while(!windowShouldClose() && !gameStarted && networkStatus) {
 		drawLoading(ip, port);
 	}
-
+  
 	if(!networkStatus && !windowShouldClose()) {
-		pthread_cancel(thread_NET);
+    printf("Failed to connect!\n");
 		failedConnection = true;
 		goto serverSelection;
 	}
+  
+  printf("Game has started.\n");
 
 	while(!windowShouldClose() && networkStatus) {
 		move = drawBoard(&board, turn, (int)playerColor);
 	}
 	
+  // Server probably closed mid game (other player disconnected)
+  if(playerWon == -1 && !windowShouldClose()) {
+    pthread_cancel(thread_NET);
+    failedConnection = true;
+    goto serverSelection;
+  }
+
 	printf("Color: %d, ", playerColor);
 	printf("Won: %d\n", playerWon);
 
-	while(!windowShouldClose() && playerWon != -1) {
+	while(!windowShouldClose()) {
 		bool ret = drawEndScreen(playerWon, playerColor, &board);
 
+    // Go back to the server selection
 		if(ret) {
-			pthread_cancel(thread_NET);
-			failedConnection = false;
+      pthread_cancel(thread_NET);
+      failedConnection = false;
 			goto serverSelection;
 		}
 	}
+
+close:
 	
 	closeWindow();
-	pthread_cancel(thread_NET);
-	close(sockfd);
+	closes(sockfd);
 	
 	free(ip);
 
-	return 0;
+	return;
 }

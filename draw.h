@@ -1,4 +1,7 @@
-#include "raylib.h"
+#include "board.h"
+#include "util.h"
+
+#include "raylib/src/raylib.h"
 
 #define MAX_IP_LENGHT 16
 #define MAX_PORT_LENGHT 6
@@ -27,7 +30,7 @@ Move drawBoard(Board* b, bool turn, int playerColor){
 
 	Vector2 mousePos = GetMousePosition();
 	
-	int hoverIndex = (mousePos.x - offsetX)/size + ((int)(mousePos.y -offsetY)/size)*BOARD_SIZE;
+	int hoverIndex = (mousePos.x - offsetX)/size + ((int)(mousePos.y - offsetY) / size)*BOARD_SIZE;
 
 	bool validHoverIndex = 1;
 	bool onBoard = (mousePos.x > offsetX && mousePos.x < screenWidth - offsetX);
@@ -60,7 +63,7 @@ Move drawBoard(Board* b, bool turn, int playerColor){
 			Color color = (b->green[i] ? GREEN : (b->blue[i] ? BLUE : BLACK));
 			color = turn ? color : (b->green[i] ? GREEN : (b->blue[i] ? BLUE : BLACK));
 
-			Rectangle bounds = {offsetX + (i % BOARD_SIZE) * size, offsetY + (i / BOARD_SIZE) * size, size, size};
+			Rectangle bounds = {(float)(offsetX + (i % BOARD_SIZE) * size), (float)(offsetY + (i / BOARD_SIZE) * size), (float)size, (float)size};
 
 			if(turn && onBoard && hoverIndex == i)
 				color = playerColor ? SKYBLUE : LIME;
@@ -69,8 +72,14 @@ Move drawBoard(Board* b, bool turn, int playerColor){
 
 			DrawRectangleRec(bounds, color);
 
-			if(DEBUG_MODE)
-				DrawText(TextFormat("%d", count(b, i)), bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, 20, WHITE);
+			if(DEBUG_MODE && hoverIndex != i)
+			{
+				int c = count(b, i);
+				DrawText(TextFormat("%d", c), bounds.x + bounds.width / 2 - (float)MeasureText(TextFormat("%d", c), 20) / 2, bounds.y + bounds.height / 2, 20, WHITE);
+			}
+			else if(DEBUG_MODE) {
+				DrawText(TextFormat("%d", i), bounds.x + bounds.width / 2 - (float)MeasureText(TextFormat("%d", i), 20) / 2, bounds.y + bounds.height / 2, 20, WHITE);
+			}
 		}
 	}
 	EndDrawing();
@@ -111,7 +120,7 @@ bool drawEndScreen(int won, int playerColor, Board* b) {
 	{
 		Color color = (b->green[i] ? GREEN : (b->blue[i] ? BLUE : BLACK));
 
-		Rectangle bounds = {offsetX + (i % BOARD_SIZE) * size, offsetY + (i / BOARD_SIZE) * size, size, size};
+		Rectangle bounds = {(float)(offsetX + (i % BOARD_SIZE) * size), (float)(offsetY + (i / BOARD_SIZE) * size), (float)size, (float)size};
 
 		DrawRectangleRec(bounds, color);
 
@@ -121,13 +130,13 @@ bool drawEndScreen(int won, int playerColor, Board* b) {
 	int width = size * BOARD_SIZE / 1.2;
 	int height = size * BOARD_SIZE / 1.2;
 
-	Rectangle endPopup = {screenWidth / 2 - width / 2, screenHeight / 2 - height / 2, width, height};
+	Rectangle endPopup = {(float)screenWidth / 2.0f - (float)width / 2.0f, (float)screenHeight / 2.0f - (float)height / 2.0f, (float)width, (float)height};
 	
 	DrawRectangleRec(endPopup, BLACK);
 	DrawRectangleLinesEx(endPopup, 2.0, WHITE);
 
-	char* endText = won == 2 ? "Draw" : (won == playerColor ? "Victory" : "Lost");
-	DrawText(endText, endPopup.x + endPopup.width / 2 - MeasureText(endText, 50) / 2, endPopup.y + endPopup.height / 2, 50, won == 2 ? WHITE : (playerColor == 0 ? GREEN : BLUE));
+	const char* endText = won == 2 ? "Draw" : (won == playerColor ? "Victory" : "Lost");
+	DrawText(endText, endPopup.x + endPopup.width / 2 - (float)MeasureText(endText, 50) / 2, endPopup.y + endPopup.height / 2, 50, won == 2 ? WHITE : (playerColor == 0 ? GREEN : BLUE));
 
 	EndDrawing();
 
@@ -147,9 +156,9 @@ bool drawServerSelection(char* ip, int* ipLenght, char* port, int* portLenght, b
 	int portWidth = MAX_PORT_LENGHT * 35;
 	int height = 50;
 
-	Rectangle ipBox = {screenWidth / 2 - ipWidth / 2, screenHeight / 2 - height / 2 - 35, ipWidth, height};
-	Rectangle portBox = {screenWidth / 2 - portWidth / 2, screenHeight / 2 - height / 2 + 35, portWidth, height};
-	Rectangle connectButton = {screenWidth / 2 - MeasureText("Connect", 40) / 2 - 5, screenHeight / 2 + 90, MeasureText("Connect", 40) + 15, height};
+	Rectangle ipBox = {(float)screenWidth / 2 - (float)ipWidth / 2, (float)screenHeight / 2 - (float)height / 2 - 35, (float)ipWidth, (float)height};
+	Rectangle portBox = {screenWidth / 2.0f - portWidth / 2.0f, screenHeight / 2.0f - height / 2.0f + 35.0f, (float)portWidth, (float)height};
+	Rectangle connectButton = {screenWidth / 2.0f - (float)MeasureText("Connect", 40) / 2 - 5, screenHeight / 2.0f + 90.0f, (float)MeasureText("Connect", 40) + 15, (float)height};
 
 	if (CheckCollisionPointRec(GetMousePosition(), ipBox))
 		ipHover = true;

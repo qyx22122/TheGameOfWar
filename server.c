@@ -2,17 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <errno.h>
 #include "sp_util.h"
 #include "board.h"
-#include "util.h"
 
-#define VERSION "0.0.69"
+#define VERSION "0.0.0.1"
 #define PORT 42042
 
 typedef struct Player {
 	int connectionfd;
-	struct sockaddr_in addr;
 } Player;
 
 typedef struct Game{
@@ -22,8 +19,7 @@ typedef struct Game{
 	int moveCount;
 } Game;
 
-void handlePlayer(int connectionfd, struct sockaddr_in addr);
-int getMove(Player* player, Move* move);
+void handlePlayer(int connectionfd);
 void createGame();
 
 static Game game = {};
@@ -32,28 +28,13 @@ static bool gameEnded = false;
 static PlayerColor turn = GREEN;
 
 int main() {
-	int sockfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-	int option = 1;
 	
-	if(sockfd == -1) {
-		perror("Couldn't create socket.\n");
-		return 1;
-	}
-	// Reuse address - stops adress already in use
-	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+  int sockfd = -1;
+  if(initss(&sockfd, PORT) == -1) {
+    perror("Failed to initialze server socket.\n");
+    return 1;
+  }
 
-	struct sockaddr_in server = {AF_INET, htons(PORT)};
-	
-	if(bind(sockfd, (struct sockaddr*)&server, sizeof(struct sockaddr_in)) == -1) {
-		perror("Couldn't bind socket.\n");
-		return 1;
-	}
-
-	if(listen(sockfd, 5) == -1) {
-		perror("No ears. (Couldn't listen)\n");
-		return 1;
-	}
-	
 	createGame();
 	printf("Created game.\n");
 	printBoard(&game.board);
@@ -61,31 +42,29 @@ int main() {
 	printf("Server has started.\n");
 
 	while(!gameStarted) {
+    
+    int newsockfd = -1;
+    int ret = acceptss(sockfd, &newsockfd);
+    if(ret == -1)
+      return 1;
 
-		struct sockaddr_in clientAddr;
-		socklen_t clientAddrLenght = sizeof(clientAddr);
+    if(ret == 1)
+      continue;
 
-		int newsockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrLenght);
-		
-		if(newsockfd == -1 && errno != 11) {
-			perror("Couldn't accept the truth. (Accept failed)\n");
-			return 1;
-		}
-		else if(newsockfd == -1)
-			continue;
-
-		if(&clientAddr == NULL) {
-			perror("Couldn't get address.\n");
-			return -1;
-		}
-
-		handlePlayer(newsockfd, clientAddr);
+		handlePlayer(newsockfd);
 	}
 
-	close(sockfd);
+	closes(sockfd);
+
 	// Send board to both players
-	vspsend(game.green.connectionfd, (void*)&game.board, sizeof(Board));
-	vspsend(game.blue.connectionfd, (void*)&game.board, sizeof(Board));
+	if(!vspsend(game.green.connectionfd, (void*)&game.board, sizeof(Board))) {
+    printf("Couldn't send board to client.\n");
+    gameEnded = true;
+  }
+	if(!vspsend(game.blue.connectionfd, (void*)&game.board, sizeof(Board))) {
+    printf("Couldn't send board to client.\n");
+    gameEnded = true;
+  }
 
 	Move move;
 
@@ -105,24 +84,39 @@ int main() {
 			printf("Terminating server.\n");
 			break;
 		}
-
-		int ret = getMove(turnPlayer, &move);
-
-		if(ret == 0) {
-			printf("Terminating server.\n");
-			break;
-		}
-
-		// Invalid move
-		if(ret == -1) {
-			cspsend(turnPlayer->connectionfd, "E: INVALID MOVE");
-
-			vspsend(turnPlayer->connectionfd, (void*)&game.board, sizeof(Board));
+    
+    // Recive move
+    if(vsprecv(turnPlayer->connectionfd, (void*)&move) <= 0) {
+		  printf("Client disconnected.\n");
+		  printf("Terminating server.\n");
+      break;
+	  }
+	  // Check if move is valid
+	  if(!validMove(&game.board, &move, turn)) {
+		  printf("Move isn't valid.\n");
+      
+      // Send error message to client
+      if(!cspsend(turnPlayer->connectionfd, "E: INVALID MOVE")) {
+        printf("Client disconnected.\n");
+	  	  printf("Terminating server.\n");
+        break;
+      }
+			
+      // Send board to client
+      if(!vspsend(turnPlayer->connectionfd, (void*)&game.board, sizeof(Board))) {
+  		  printf("Client disconnected.\n");
+	  	  printf("Terminating server.\n");
+        break;
+      }
 
 			continue;
-		}
+	  }
 
-		cspsend(turnPlayer->connectionfd, "S");
+		if(!cspsend(turnPlayer->connectionfd, "S")) {
+      printf("Client disconnected.\n");
+	  	printf("Terminating server.\n");
+      break;
+    }
 
 		printf("Move: %d, ", move.type);
 		printf("Move position: %d\n", move.position);
@@ -132,8 +126,16 @@ int main() {
 		updateBoardMove(&game.board, &move, turn);
 
 		// Send both players the updated board
-		vspsend(greenCfd, (void*)&game.board, sizeof(Board));
-		vspsend(blueCfd, (void*)&game.board, sizeof(Board));
+		if(!vspsend(greenCfd, (void*)&game.board, sizeof(Board))) {
+      printf("Client disconnected.\n");
+			printf("Terminating server.\n");
+      break;
+    }
+		if(!vspsend(blueCfd, (void*)&game.board, sizeof(Board))) {
+      printf("Client disconnected.\n");
+			printf("Terminating server.\n");
+      break;
+    }
 
 		int winCondition = checkWinCondition(&game.board);
 		
@@ -142,24 +144,39 @@ int main() {
 
 			turn = turn == GREEN ? BLUE : GREEN;
 
-			cspsend(greenCfd, "C");
-			cspsend(blueCfd, "C");
+			if(!cspsend(greenCfd, "C")) {
+        printf("Client disconnected.\n");
+        printf("Terminating server.\n");
+        break;
+      }
+			
+      if(!cspsend(blueCfd, "C")) {
+  		  printf("Client disconnected.\n");
+	  	  printf("Terminating server.\n");
+        break;
+      }
+
 			continue;
 		}
 		else if(winCondition == -1) {
 			printf("Game ended with a DRAW.\n");
-			cspsend(greenCfd, "D");
-			cspsend(blueCfd, "D");
+		
+      // Error checking isn't necesarry as the game is over
+      cspsend(greenCfd, "D");	
+      cspsend(blueCfd, "D");
+
 			break;
 		}
 		
 		PlayerColor playerWon = (PlayerColor)winCondition;
 		
 		if(playerWon == GREEN) {
+      // Error checking isn't necesarry as the game is over
 			cspsend(greenCfd, "G");
 			cspsend(blueCfd, "G");
 		}
 		else {
+      // Error checking isn't necesarry as the game is over
 			cspsend(greenCfd, "B");
 			cspsend(blueCfd, "B");
 		}
@@ -168,8 +185,11 @@ int main() {
 
 	}
 
-	close(game.green.connectionfd);
-	close(game.blue.connectionfd);
+	closes(game.green.connectionfd);
+	closes(game.blue.connectionfd);
+  closes(sockfd);
+
+  main();
 
 	return 0;
 }
@@ -183,9 +203,7 @@ void createGame() {
 	game.blue.connectionfd = -1;
 }
 
-void handlePlayer(int connectionfd, struct sockaddr_in addr) {
-	printf("Client connected (%s:%d)\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-	
+void handlePlayer(int connectionfd) {
 	char* clientVersion;
 	csprecv(connectionfd, &clientVersion);
 	printf("Client version: %s\n", clientVersion);
@@ -200,7 +218,7 @@ void handlePlayer(int connectionfd, struct sockaddr_in addr) {
 
 		cspsend(connectionfd, errorMsg);
 		
-		close(connectionfd);
+		closes(connectionfd);
 		return;
 	}
 
@@ -213,8 +231,6 @@ void handlePlayer(int connectionfd, struct sockaddr_in addr) {
 		cspsend(connectionfd, color);
 
 		game.green.connectionfd = connectionfd;
-		game.green.addr = addr;
-
 	}
 	else if(game.blue.connectionfd == -1) {
 		printf("Client color: BLUE\n");
@@ -222,27 +238,7 @@ void handlePlayer(int connectionfd, struct sockaddr_in addr) {
 		cspsend(connectionfd, color);
 
 		game.blue.connectionfd = connectionfd;
-		game.blue.addr = addr;
-
 		gameStarted = true;
 	}
 
-}
-
-int getMove(Player* player, Move* move) {
-
-	if(vsprecv(player->connectionfd, (void*)move) <= 0) {
-		printf("Client disconnected.\n");
-		return 0;
-	}
-
-	// Check if move is valid
-	if(move == NULL || !validMove(&game.board, move, turn)) {
-		printf("Move isn't valid.\n");
-		return -1;
-	}
-
-	printf("%s:%d: ", inet_ntoa(player->addr.sin_addr), ntohs(player->addr.sin_port));
-
-	return 1;
 }
