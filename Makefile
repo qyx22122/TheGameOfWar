@@ -1,8 +1,7 @@
 CC=gcc
 
-SOCKET_ARGS=
 # -Wl,-R flag to . and ./bin/ for running from the base project directory
-RAYLIB_ARGS=-L./bin/ -lm -lraylib -Wl,-R. -Wl,-R./bin/
+RAYLIB_ARGS=-lm ./raylib/src/libraylib.a
 
 # Set the WINDOWS flag on by default when running on Windows
 ifeq ($(OS),Windows_NT)
@@ -11,9 +10,10 @@ ifeq ($(OS),Windows_NT)
 	endif
 endif
 
-# Link winsock
+# Link winsock and windows raylib dependencies
 ifdef WINDOWS
-	SOCKET_ARGS += -lws2_32
+	SOCKET_ARGS += -Wl,-Bstatic -lpthread -lws2_32
+	RAYLIB_ARGS += -lwinmm -lgdi32 -luser32 -lshell32
 endif
 
 make: main.c raylib
@@ -23,7 +23,7 @@ run: main.c raylib
 	./bin/main
 server: server.c
 	mkdir -p bin && $(CC) -o bin/server server.c $(SOCKET_ARGS)
-BIG_server: BIG_server.c
+big_server: BIG_server.c
 	mkdir -p bin && $(CC) -o bin/BIG_server BIG_server.c $(SOCKET_ARGS)
 client: client.c raylib
 	mkdir -p bin && $(CC) -o bin/client client.c $(SOCKET_ARGS) $(RAYLIB_ARGS)
@@ -40,13 +40,7 @@ clean:
 
 raylib: raylib/src/*.h
 ifdef WINDOWS
-	make -C raylib/src/ PLATFORM=PLATFORM_DESKTOP PLATFORM_DESKTOP=WINDOWS PLATFORM_OS=WINDOWS RAYLIB_LIBTYPE=SHARED CC=$(CC)
-	mkdir -p bin/
-	cp raylib/src/raylib.dll bin/
+	make -C raylib/src/ PLATFORM=PLATFORM_DESKTOP PLATFORM_DESKTOP=WINDOWS PLATFORM_OS=WINDOWS CC=$(CC)
 else
-	make -C raylib/src/ PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED CC=$(CC)
-	mkdir -p bin/
-	cp raylib/src/libraylib.so.5.5.0 bin/
-	cp raylib/src/libraylib.so bin/
-	cp raylib/src/libraylib.so.550 bin/
+	make -C raylib/src/ PLATFORM=PLATFORM_DESKTOP CC=$(CC)
 endif

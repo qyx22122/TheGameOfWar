@@ -6,7 +6,7 @@
 #include "sp_util.h"
 #include "board.h"
 
-#define VERSION "0.0.69.1"
+#define VERSION "0.0.19.1"
 #define PORT 42042
 #define THREADNUM 10
 
@@ -43,29 +43,33 @@ int main() {
     return 1;
   }
 	printf("Server has started.\n");
-	for (int i = 0; i < THREADNUM; i++){
+  while(true) {
+	  for (int i = 0; i < THREADNUM; i++){
 
-		createGame(i);
-		printf("Created game %d.\n",i);
-		printBoard(&gameThreads[i].game.board);
+      if(gameThreads[i].gameStarted && !gameThreads[i].gameEnded)
+        continue;
 
+		  createGame(i);
+		  printf("Created game %d.\n",i);
+		  printBoard(&gameThreads[i].game.board);
 
-		while(!gameThreads[i].gameStarted){
-    
-			int newsockfd = -1;
-			int ret = acceptss(sockfd, &newsockfd);
-			if(ret == -1) return 1;
-			if(ret == 1) continue;
+		  while(!gameThreads[i].gameStarted){
+			  int newsockfd = -1;
+			  int ret = acceptss(sockfd, &newsockfd);
+			  if(ret == -1) return 1;
+			  if(ret == 1) break;
 
-			handlePlayer(newsockfd, i);
+			  handlePlayer(newsockfd, i);
+		  }
 
-		}
-		int i2 = i;
-		pthread_create(&gameThreads[i2].thread, NULL, &manageThread, (void*)&i2);
+		  int i2 = i;
+		  pthread_create(&gameThreads[i2].thread, NULL, &manageThread, (void*)&i2);
 
-	}
+	  }
+  }
+
 	closes(sockfd);
-	main();
+  return 1;
 }
 
 void* manageThread(void* pi){
@@ -198,8 +202,12 @@ void* manageThread(void* pi){
 
 	}
 
-	closes(gameThreads[i].game.green.connectionfd);
-	closes(gameThreads[i].game.blue.connectionfd);
+	closew(gameThreads[i].game.green.connectionfd);
+	closew(gameThreads[i].game.blue.connectionfd);
+  gameThreads[i].gameStarted = false;
+  gameThreads[i].gameEnded = false;
+
+  return 0;
 }
 
 void createGame(int i) {
@@ -249,5 +257,4 @@ void handlePlayer(int connectionfd, int i) {
 		gameThreads[i].game.blue.connectionfd = connectionfd;
 		gameThreads[i].gameStarted = true;
 	}
-
 }

@@ -9,7 +9,7 @@
 #include "board.h"
 #include "draw.h"
 
-#define VERSION "0.0.69.1"
+#define VERSION "0.0.19.1"
 
 void drawGUI();
 void* connectToServer(void* n);
@@ -212,25 +212,47 @@ serverSelection:
   networkStatus = true;
 
 	while(!windowShouldClose() && !gameStarted && networkStatus) {
-		drawLoading(ip, port);
+		bool shouldStop = drawLoading(ip, port);
+    if(shouldStop) {
+      printf("Stopped waiting.\n");
+      failedConnection = true;
+      pthread_cancel(thread_NET);
+      networkStatus = false;
+      closes(sockfd);
+      goto serverSelection;
+    }
 	}
   
 	if(!networkStatus && !windowShouldClose()) {
     printf("Failed to connect!\n");
 		failedConnection = true;
+    gameStarted = false;
+    closes(sockfd);
 		goto serverSelection;
 	}
   
   printf("Game has started.\n");
 
 	while(!windowShouldClose() && networkStatus) {
-		move = drawBoard(&board, turn, (int)playerColor);
+    bool pressed = false;
+		move = drawBoard(&board, turn, (int)playerColor, &pressed);
+    if(pressed) {
+      printf("Disconnected from game.\n");
+      failedConnection = true;
+      pthread_cancel(thread_NET);
+      gameStarted = false;
+      networkStatus = false;
+      closes(sockfd);
+      goto serverSelection;
+    }
 	}
 	
   // Server probably closed mid game (other player disconnected)
   if(playerWon == -1 && !windowShouldClose()) {
     pthread_cancel(thread_NET);
     failedConnection = true;
+    gameStarted = false;
+    closes(sockfd);
     goto serverSelection;
   }
 
@@ -244,6 +266,8 @@ serverSelection:
 		if(ret) {
       pthread_cancel(thread_NET);
       failedConnection = false;
+      gameStarted = false;
+      closes(sockfd);
 			goto serverSelection;
 		}
 	}

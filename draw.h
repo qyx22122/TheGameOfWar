@@ -9,6 +9,7 @@
 void initWindow(const char* title, int sizeX, int sizeY){
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 	InitWindow(sizeX, sizeY, title);
+  SetExitKey(KEY_NULL);
 	SetTargetFPS(60);
 }
 bool windowShouldClose(){
@@ -20,7 +21,7 @@ void closeWindow() {
 
 extern int count(Board* b, int i);
 
-Move drawBoard(Board* b, bool turn, int playerColor){
+Move drawBoard(Board* b, bool turn, int playerColor, bool* pressed){
 
 	int screenWidth = GetScreenWidth();
 	int screenHeight = GetScreenHeight();
@@ -83,12 +84,13 @@ Move drawBoard(Board* b, bool turn, int playerColor){
 		}
 	}
 	EndDrawing();
-	
+
+  *pressed = IsKeyPressed(KEY_ESCAPE);
 	
 	return move;
 }
 
-void drawLoading(char* ip, int port) {
+bool drawLoading(char* ip, int port) {
 
 	int screenWidth = GetScreenWidth();
 	int screenHeight = GetScreenHeight();
@@ -104,6 +106,8 @@ void drawLoading(char* ip, int port) {
 	DrawText(formattedText, screenWidth/2 - MeasureText(formattedText, 30) / 2, screenHeight/2 + 25, 30, SKYBLUE);
 
 	EndDrawing();
+
+  return IsKeyPressed(KEY_ESCAPE);
 }
 
 bool drawEndScreen(int won, int playerColor, Board* b) {

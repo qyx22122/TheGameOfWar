@@ -39,6 +39,7 @@ typedef struct tagMSG {
 
 #else
 #define closesocket close
+#define SOCKET_ERROR -1
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -59,6 +60,9 @@ static void clearWinsock() {
 void closes(int sockfd) {
   closesocket(sockfd);
   clearWinsock();
+}
+void closew(int sockfd) {
+  closesocket(sockfd);
 }
 
 // Initialize server socket & listen for connections
@@ -162,8 +166,7 @@ int initcs(int* sockfd, char* ip, int port) {
 // Send functions
 static int sendSize(int sock, size_t size) {
 	int ret = send(sock, (char*)&size, sizeof(size), MSG_NOSIGNAL);
-
-	if(ret == -1) {
+  if(ret == SOCKET_ERROR) {
 		perror("Sending size failed.\n");
 		return -1;
 	}
@@ -183,7 +186,7 @@ int ispsend(int sock, int x) {
 
 	int ret = send(sock, (char*)&x, size, MSG_NOSIGNAL);
 
-	if(ret == -1) {
+	if(ret == SOCKET_ERROR) {
 		perror("Sending failed.\n");
 		return -1;
 	}
@@ -202,7 +205,7 @@ int fspsend(int sock, float x) {
 
 	int ret = send(sock, (char*)&x, size, MSG_NOSIGNAL);
 
-	if(ret == -1) {
+	if(ret == SOCKET_ERROR) {
 		perror("Sending failed.\n");
 		return -1;
 	}
@@ -221,7 +224,7 @@ int bspsend(int sock, bool x) {
 
 	int ret = send(sock, (char*)&x, size, MSG_NOSIGNAL);
 
-	if(ret == -1) {
+	if(ret == SOCKET_ERROR) {
 		perror("Sending failed.\n");
 		return -1;
 	}
@@ -242,7 +245,7 @@ int cspsend(int sock, char* x) {
 
 	int ret = send(sock, x, size, MSG_NOSIGNAL);
 
-	if(ret == -1) {
+	if(ret == SOCKET_ERROR) {
 		perror("Sending failed.\n");
 		return -1;
 	}
@@ -259,7 +262,7 @@ int vspsend(int sock, void* x, size_t size) {
 
 	int ret = send(sock, (char*)x, size, MSG_NOSIGNAL);
 
-	if(ret == -1) {
+	if(ret == SOCKET_ERROR) {
 		perror("Sending failed.\n");
 		return -1;
 	}
@@ -273,8 +276,7 @@ static size_t recvSize(int sock) {
 	size_t size = 0;
 	ssize_t ret = recv(sock, (char*)&size, sizeof(size), 0);
 
-
-	if(ret == -1) {
+	if(ret == SOCKET_ERROR) {
 		perror("Reciving size failed.\n");
 		return -1;
 	}
@@ -291,7 +293,7 @@ int isprecv(int sock, int* value) {
 
 	ssize_t ret = recv(sock, (char*)value, size, 0);
 
-	if(ret == -1) {
+	if(ret == SOCKET_ERROR) {
 		perror("Reciving failed.\n");
 		return -1;
 	}
@@ -311,7 +313,7 @@ int fsprecv(int sock, float* value) {
 
 	ssize_t ret = recv(sock, (char*)value, size, 0);
 
-	if(ret == -1) {
+	if(ret == SOCKET_ERROR) {
 		perror("Reciving failed.\n");
 		return -1;
 	}
@@ -331,7 +333,7 @@ int bsprecv(int sock, bool* value) {
 
 	ssize_t ret = recv(sock, (char*)value, size, 0);
 
-	if(ret == -1) {
+	if(ret == SOCKET_ERROR) {
 		perror("Reciving failed.\n");
 		return -1;
 	}
@@ -359,7 +361,7 @@ int csprecv(int sock, char** value) {
 
 	ssize_t ret = recv(sock, *value, size, 0);
 
-	if(ret == -1) {
+	if(ret == SOCKET_ERROR) {
 		perror("Reciving failed.\n");
 		return -1;
 	}
@@ -380,7 +382,7 @@ int vsprecv(int sock, void* value) {
 
 	ssize_t ret = recv(sock, (char*)value, size, 0);
 
-	if(ret == -1) {
+	if(ret == SOCKET_ERROR) {
 		perror("Reciving failed.\n");
 		return -1;
 	}

@@ -5,7 +5,7 @@
 #include "sp_util.h"
 #include "board.h"
 
-#define VERSION "0.0.0.1"
+#define VERSION "0.0.19.1"
 #define PORT 42042
 
 typedef struct Player {
@@ -53,8 +53,6 @@ int main() {
 
 		handlePlayer(newsockfd);
 	}
-
-	closes(sockfd);
 
 	// Send board to both players
 	if(!vspsend(game.green.connectionfd, (void*)&game.board, sizeof(Board))) {
