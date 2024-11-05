@@ -9,13 +9,16 @@
 #include "board.h"
 #include "draw.h"
 
-#define VERSION "0.0.19.1"
+#ifndef TGW_VERSION
+#define TGW_VERSION "0.0.0.0"
+#endif
 
 void drawGUI();
-void* connectToServer(void* n);
+void* connectToServer();
 
 static Board board;
-static bool turn;
+static MoveNotice turn;
+
 static bool networkStatus;
 static bool gameStarted;
 static Move move;
@@ -28,17 +31,23 @@ static int port;
 
 static int sockfd;
 
+static int counter;
+
 int main() {
   drawGUI();
 	return 0;
 }
-void* connectToServer(void* n){
+void* connectToServer(){
 
-	playerColor = NONE;
+  memset(&board, 0, sizeof(Board));
+	playerColor = PLAYER_NONE;
 	gameStarted = false;
 	playerWon = -1;
 	turn = false;
 	move.type = NONE;
+  move.position = -1;
+
+  networkStatus = true;
 
   if(initcs(&sockfd, ip, port) == -1) {
     networkStatus = false;
@@ -48,103 +57,102 @@ void* connectToServer(void* n){
 	printf("Connected to server.\n");
 
 	// Version Check
-	char* version_buffer = VERSION;
-	cspsend(sockfd, version_buffer);
-	printf("Running version %s\n", VERSION);
+	char* version_buffer = TGW_VERSION;
+	spsend(sockfd, version_buffer, strlen(version_buffer)+1);
+	printf("Running version %s\n", TGW_VERSION);
 
 	// Get player color from server
-	char* color;
-	csprecv(sockfd, &color);
+	sprecv(sockfd, &playerColor);
 
-	if(color[0] == 'E') {
-		printf("Server Error -- %s\n", color);
+	if(playerColor == (int)OUTDATED_VERSION) {
+		printf("Outdated client version.\n");
 		networkStatus = false;
 		return 0;
 	}
 
-	printf("Color: %s\n", color);
+	printf("Color: %s\n", playerColor == PLAYER_GREEN ? "Green" : "Blue");
 
-	if(color[0] == 'G') {
-		playerColor = 0;
-	}
-	else if(color[0] == 'B') {
-		playerColor = 1;
-	}
-
-	free(color);
-	
 	// Recive board update when game starts
 	memset(&board, 0, sizeof(board));
-	vsprecv(sockfd, (void*)&board);
+	sprecv(sockfd, (void*)&board);
+  printBoard(&board);
 
 	gameStarted = true;
 
-	while(true) {
+	while(gameStarted && networkStatus) {
 
 		printf("Waiting for turn...\n");
 
-		int ret = bsprecv(sockfd, &turn);
+		int ret = sprecv(sockfd, &turn);
 		
-		printf("Turn: %d\n", turn);
-
 		if(ret == 0) {
 			printf("Server disconnected.\n");
 			break;
 		}
+		
+    printf("Turn: %d\n", turn);
 
 		if(turn) {
-			while(move.type == NONE);
+			while(move.type == NONE) {}
+      printf("Move: %d\n", move.position);
+      printf("Counter: %d\n", counter);
+      counter++;
 
 			printf("Sending move.\n");
-			vspsend(sockfd, (void*)&move, sizeof(move));
+			spsend(sockfd, (void*)&move, sizeof(move));
 			
 			printf("Synchronizing with server.\n");
-			char* errorMsg;
-			csprecv(sockfd, &errorMsg);
+			MoveStatus moveStatus;
+			ret = sprecv(sockfd, (void*)&moveStatus);
 
-			if(errorMsg[0] == 'E') {
-				printf("Server Error -- %s\n", errorMsg);
+      printf("Error: %d\n", ret);
+
+      printf("MS: %d\n", moveStatus);
+
+			if(moveStatus == INVALID_MOVE) {
+				printf("Invalid move sent.\n");
 				
 				// Recive updated board
-				vsprecv(sockfd, (void*)&board);
+        printf("Reciving board.\n");
+				sprecv(sockfd, (void*)&board);
 				continue;
 			}
 			
-			if(errorMsg[0] != 'S') {
-				printf("Error -- %s\n", errorMsg);
-				break;
-			}
-
 			printf("Move sent successfully.\n");
 		}
 
 		printf("Reciving updated board.\n");
 
-		vsprecv(sockfd, (void*)&board);
+		ret = sprecv(sockfd, (void*)&board);
 		
-		char* gameState;
-		ret = csprecv(sockfd, &gameState);
+    if(ret == 0) {
+			printf("Server disconnected.\n");
+			break;
+		}
+    
+		GameState gameState;
+		ret = sprecv(sockfd, &gameState);
 
 		if(ret == 0) {
 			printf("Server disconnected.\n");
 			break;
 		}
 
-		printf("Game state: %s\n", gameState);
+		printf("Game state: %d\n", gameState);
 
-		if(gameState[0] == 'C')
+		if(gameState == CONTINUE)
 			continue;
-		else if(gameState[0] == 'D') {
+		else if(gameState == DRAW) {
 			printf("Game Ended in a DRAW.\n");
 			playerWon = 2;
 			break;
 		}
-		else if(gameState[0] == 'G') {
+		else if(gameState == GREEN_WIN) {
 			printf("GREEN won.\n");
 			playerWon = 0;
 			break;
 		}
-		else if(gameState[0] == 'B') {
+		else if(gameState == BLUE_WIN) {
 			printf("BLUE won.\n");
 			playerWon = 1;
 			break;
@@ -155,9 +163,9 @@ void* connectToServer(void* n){
 		}
 	}
 
-	networkStatus = false;
-  gameStarted = false;
-	return 0;
+	gameStarted = false;
+  networkStatus = false;
+  pthread_exit(0);
 }
 
 void drawGUI() {
@@ -196,9 +204,7 @@ serverSelection:
 				invalidAddress = true;
 				continue;
 			}
-
 			port = atoi(portStr);
-
 			break;
 		}
 	}
@@ -208,7 +214,8 @@ serverSelection:
     goto close;
   }
 
-	pthread_create(&thread_NET, NULL, connectToServer, NULL);
+	pthread_create(&thread_NET, NULL, &connectToServer, NULL);
+  printf("Created network thread: %d\n", thread_NET);
   networkStatus = true;
 
 	while(!windowShouldClose() && !gameStarted && networkStatus) {
@@ -216,8 +223,8 @@ serverSelection:
     if(shouldStop) {
       printf("Stopped waiting.\n");
       failedConnection = true;
-      pthread_cancel(thread_NET);
       networkStatus = false;
+      pthread_cancel(thread_NET);
       closes(sockfd);
       goto serverSelection;
     }
@@ -226,8 +233,7 @@ serverSelection:
 	if(!networkStatus && !windowShouldClose()) {
     printf("Failed to connect!\n");
 		failedConnection = true;
-    gameStarted = false;
-    closes(sockfd);
+    networkStatus = false;
 		goto serverSelection;
 	}
   
@@ -239,19 +245,18 @@ serverSelection:
     if(pressed) {
       printf("Disconnected from game.\n");
       failedConnection = true;
-      pthread_cancel(thread_NET);
       gameStarted = false;
       networkStatus = false;
       closes(sockfd);
       goto serverSelection;
     }
 	}
-	
+
   // Server probably closed mid game (other player disconnected)
   if(playerWon == -1 && !windowShouldClose()) {
-    pthread_cancel(thread_NET);
-    failedConnection = true;
+    printf("Something exited.\n");
     gameStarted = false;
+    failedConnection = true;
     closes(sockfd);
     goto serverSelection;
   }

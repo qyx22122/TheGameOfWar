@@ -12,8 +12,9 @@ typedef struct Board {
 } Board;
 
 typedef enum PlayerColor {
-	GREEN = 0,
-	BLUE = 1
+	PLAYER_GREEN = 0,
+	PLAYER_BLUE = 1,
+  PLAYER_NONE = -1
 } PlayerColor;
 
 typedef enum MoveType {

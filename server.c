@@ -3,10 +3,16 @@
 #include <string.h>
 #include <stdbool.h>
 #include "sp_util.h"
+#include "util.h"
 #include "board.h"
 
-#define VERSION "0.0.19.1"
-#define PORT 42042
+#ifndef TGW_VERSION
+#define TGW_VERSION "0.0.0.0"
+#endif
+
+#ifndef TGW_PORT
+#define TGW_PORT 42042
+#endif
 
 typedef struct Player {
 	int connectionfd;
@@ -25,15 +31,17 @@ void createGame();
 static Game game = {};
 static bool gameStarted = false;
 static bool gameEnded = false;
-static PlayerColor turn = GREEN;
+static PlayerColor turn = PLAYER_GREEN;
 
 int main() {
 	
   int sockfd = -1;
-  if(initss(&sockfd, PORT) == -1) {
+  if(initss(&sockfd, TGW_PORT) == -1) {
     perror("Failed to initialze server socket.\n");
     return 1;
   }
+  printf("Running server %s\n", TGW_VERSION);
+  printf("Running on port %d\n", TGW_PORT);
 
 	createGame();
 	printf("Created game.\n");
@@ -55,11 +63,11 @@ int main() {
 	}
 
 	// Send board to both players
-	if(!vspsend(game.green.connectionfd, (void*)&game.board, sizeof(Board))) {
+	if(!spsend(game.green.connectionfd, (void*)&game.board, sizeof(Board))) {
     printf("Couldn't send board to client.\n");
     gameEnded = true;
   }
-	if(!vspsend(game.blue.connectionfd, (void*)&game.board, sizeof(Board))) {
+	if(!spsend(game.blue.connectionfd, (void*)&game.board, sizeof(Board))) {
     printf("Couldn't send board to client.\n");
     gameEnded = true;
   }
@@ -67,24 +75,24 @@ int main() {
 	Move move;
 
 	while(!gameEnded) {
-		Player* turnPlayer = turn==GREEN? &game.green : &game.blue;
+		Player* turnPlayer = turn==PLAYER_GREEN? &game.green : &game.blue;
 		int greenCfd = game.green.connectionfd;
 		int blueCfd = game.blue.connectionfd;
 
 		// Send move notice
-		if(!bspsend(greenCfd, turn==GREEN)) {
+		if(!ispsend(greenCfd, turn == PLAYER_GREEN)) {
 			printf("Client disconnected.\n");
 			printf("Terminating server.\n");
 			break;
 		}
-		if(!bspsend(blueCfd, turn==BLUE)) {
+		if(!ispsend(blueCfd, turn == PLAYER_BLUE)) {
 			printf("Client disconnected.\n");
 			printf("Terminating server.\n");
 			break;
 		}
     
     // Recive move
-    if(vsprecv(turnPlayer->connectionfd, (void*)&move) <= 0) {
+    if(sprecv(turnPlayer->connectionfd, (void*)&move) <= 0) {
 		  printf("Client disconnected.\n");
 		  printf("Terminating server.\n");
       break;
@@ -94,14 +102,14 @@ int main() {
 		  printf("Move isn't valid.\n");
       
       // Send error message to client
-      if(!cspsend(turnPlayer->connectionfd, "E: INVALID MOVE")) {
+      if(!ispsend(turnPlayer->connectionfd, INVALID_MOVE)) {
         printf("Client disconnected.\n");
 	  	  printf("Terminating server.\n");
         break;
       }
 			
       // Send board to client
-      if(!vspsend(turnPlayer->connectionfd, (void*)&game.board, sizeof(Board))) {
+      if(!spsend(turnPlayer->connectionfd, (void*)&game.board, sizeof(Board))) {
   		  printf("Client disconnected.\n");
 	  	  printf("Terminating server.\n");
         break;
@@ -110,7 +118,7 @@ int main() {
 			continue;
 	  }
 
-		if(!cspsend(turnPlayer->connectionfd, "S")) {
+		if(!ispsend(turnPlayer->connectionfd, MOVE_SUCCESS)) {
       printf("Client disconnected.\n");
 	  	printf("Terminating server.\n");
       break;
@@ -124,12 +132,12 @@ int main() {
 		updateBoardMove(&game.board, &move, turn);
 
 		// Send both players the updated board
-		if(!vspsend(greenCfd, (void*)&game.board, sizeof(Board))) {
+		if(!spsend(greenCfd, (void*)&game.board, sizeof(Board))) {
       printf("Client disconnected.\n");
 			printf("Terminating server.\n");
       break;
     }
-		if(!vspsend(blueCfd, (void*)&game.board, sizeof(Board))) {
+		if(!spsend(blueCfd, (void*)&game.board, sizeof(Board))) {
       printf("Client disconnected.\n");
 			printf("Terminating server.\n");
       break;
@@ -140,15 +148,15 @@ int main() {
 		if(winCondition == 2) {
 			printf("Updated board sent to both players.\n");
 
-			turn = turn == GREEN ? BLUE : GREEN;
+			turn = turn == PLAYER_GREEN ? PLAYER_BLUE : PLAYER_GREEN;
 
-			if(!cspsend(greenCfd, "C")) {
+			if(!ispsend(greenCfd, CONTINUE)) {
         printf("Client disconnected.\n");
         printf("Terminating server.\n");
         break;
       }
 			
-      if(!cspsend(blueCfd, "C")) {
+      if(!ispsend(blueCfd, CONTINUE)) {
   		  printf("Client disconnected.\n");
 	  	  printf("Terminating server.\n");
         break;
@@ -160,23 +168,23 @@ int main() {
 			printf("Game ended with a DRAW.\n");
 		
       // Error checking isn't necesarry as the game is over
-      cspsend(greenCfd, "D");	
-      cspsend(blueCfd, "D");
+      ispsend(greenCfd, DRAW);
+      ispsend(blueCfd, DRAW);
 
 			break;
 		}
 		
 		PlayerColor playerWon = (PlayerColor)winCondition;
 		
-		if(playerWon == GREEN) {
+		if(playerWon == PLAYER_GREEN) {
       // Error checking isn't necesarry as the game is over
-			cspsend(greenCfd, "G");
-			cspsend(blueCfd, "G");
+			ispsend(greenCfd, GREEN_WIN);
+			ispsend(blueCfd, GREEN_WIN);
 		}
 		else {
       // Error checking isn't necesarry as the game is over
-			cspsend(greenCfd, "B");
-			cspsend(blueCfd, "B");
+			ispsend(greenCfd, BLUE_WIN);
+			ispsend(blueCfd, BLUE_WIN);
 		}
 
 		break;
@@ -194,7 +202,7 @@ int main() {
 
 void createGame() {
 	gameStarted = false;
-	turn = GREEN;
+	turn = PLAYER_GREEN;
 	game.moveCount = 0;
 	initBoard(&(game.board));
 	game.green.connectionfd = -1;
@@ -207,14 +215,10 @@ void handlePlayer(int connectionfd) {
 	printf("Client version: %s\n", clientVersion);
 	
 	// Version doesn't match
-	if(strcmp(clientVersion, VERSION)) {
-		printf("Outdated client. Update to version %s\n", VERSION);
+	if(strcmp(clientVersion, TGW_VERSION)) {
+		printf("Outdated client. Update to version %s\n", TGW_VERSION);
 
-		char errorMsg[13+strlen(VERSION)];
-		strcpy(errorMsg, "E: OUTDATED: ");
-		strcat(errorMsg, VERSION);
-
-		cspsend(connectionfd, errorMsg);
+		ispsend(connectionfd, OUTDATED_VERSION);
 		
 		closes(connectionfd);
 		return;
@@ -225,15 +229,13 @@ void handlePlayer(int connectionfd) {
 	// Asign color
 	if(game.green.connectionfd == -1) {
 		printf("Client color: GREEN\n");
-		char* color = "G";
-		cspsend(connectionfd, color);
+		ispsend(connectionfd, PLAYER_GREEN);
 
 		game.green.connectionfd = connectionfd;
 	}
 	else if(game.blue.connectionfd == -1) {
 		printf("Client color: BLUE\n");
-		char* color = "B";
-		cspsend(connectionfd, color);
+		ispsend(connectionfd, PLAYER_BLUE);
 
 		game.blue.connectionfd = connectionfd;
 		gameStarted = true;

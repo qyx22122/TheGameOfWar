@@ -5,9 +5,29 @@
 
 #define DEBUG_MODE 0
 
+#ifndef min
 int min(int x, int y) {
 	return x < y ? x : y;
 }
+#endif
+
+typedef enum {
+  WAIT = 0,
+  TURN = 1
+} MoveNotice;
+
+typedef enum {
+  OUTDATED_VERSION = -1,
+  INVALID_MOVE = 0,
+  MOVE_SUCCESS = 1,
+} MoveStatus;
+
+typedef enum {
+  CONTINUE = 3,
+  DRAW = 2,
+  GREEN_WIN = 0,
+  BLUE_WIN = 1
+} GameState;
 
 //https://stackoverflow.com/questions/791982/determine-if-a-string-is-a-valid-ipv4-address-in-c
 int isValidIp4 (char *str) {
