@@ -36,6 +36,8 @@ run-client: client.c raylib
 	./bin/client
 run-big_server: BIG_server.c
 	mkdir -p bin && $(CC) -o bin/BIG_server BIG_server.c $(ARGS) $(SOCKET_ARGS) -D'TGW_VERSION="$(VERSION)"' -D'TGW_PORT=$(PORT)' -D'TGW_THREADNUM=$(THREADNUM)' && ./bin/BIG_server
+bot: bot.c raylib
+	mkdir -p bin && $(CC) -o bin/bot bot.c $(ARGS) $(SOCKET_ARGS) $(RAYLIB_ARGS) -D'TGW_VERSION="$(VERSION)"'
 clean:
 	rm raylib/src/*.o
 	rm -r bin
