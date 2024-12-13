@@ -21,5 +21,9 @@
       xorg.xcbutilrenderutil.dev
       xorg.xcbutilwm.dev
       xorg.xorgproto
+      glfw
     ];
+    shellHook = ''
+    	export DISPLAY=:0;
+    '';
 }
