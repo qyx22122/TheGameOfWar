@@ -5,7 +5,7 @@ THREADNUM=10
 # enable to dynamically link raylib and use the system installation
 #SYSTEM_RAYLIB=true
 
-ARGS=-Wall -Wextra
+ARGS=-Wall -Wextra -lglfw
 ifndef SYSTEM_RAYLIB
 	RAYLIB_ARGS=-lm ./raylib/src/libraylib.a
 else
@@ -37,7 +37,7 @@ run-client: client.c raylib
 run-big_server: BIG_server.c
 	mkdir -p bin && $(CC) -o bin/BIG_server BIG_server.c $(ARGS) $(SOCKET_ARGS) -D'TGW_VERSION="$(VERSION)"' -D'TGW_PORT=$(PORT)' -D'TGW_THREADNUM=$(THREADNUM)' && ./bin/BIG_server
 bot: bot.c raylib
-	mkdir -p bin && $(CC) -o bin/bot bot.c $(ARGS) $(SOCKET_ARGS) $(RAYLIB_ARGS) -D'TGW_VERSION="$(VERSION)"'
+	mkdir -p bin && $(CC) -g -o bin/bot bot.c $(ARGS) $(SOCKET_ARGS) $(RAYLIB_ARGS) -D'TGW_VERSION="$(VERSION)"'
 clean:
 	rm raylib/src/*.o
 	rm -r bin

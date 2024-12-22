@@ -3,23 +3,24 @@
     nativeBuildInputs = with pkgs; [
       gnumake
       gcc
-      glibc.dev
-      libxkbcommon.dev
+      glibc
+      libxkbcommon
       xorg.libpthreadstubs
-      xorg.libX11.dev
-      xorg.libxcb.dev
-      xorg.libXext.dev
-      xorg.libXi.dev
+      xorg.libX11
+      xorg.libxcb
+      xorg.libXext
+      xorg.libXft
+      xorg.libXi
       xorg.libXcursor
       xorg.libXrandr
       xorg.libXinerama
       xorg.xcbproto
-      xorg.xcbutil.dev
-      xorg.xcbutilcursor.dev
+      xorg.xcbutil
+      xorg.xcbutilcursor
       xorg.xcbutilerrors
-      xorg.xcbutilkeysyms.dev
-      xorg.xcbutilrenderutil.dev
-      xorg.xcbutilwm.dev
+      xorg.xcbutilkeysyms
+      xorg.xcbutilrenderutil
+      xorg.xcbutilwm
       xorg.xorgproto
       glfw
  
