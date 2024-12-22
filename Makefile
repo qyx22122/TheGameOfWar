@@ -5,7 +5,7 @@ THREADNUM=10
 # enable to dynamically link raylib and use the system installation
 #SYSTEM_RAYLIB=true
 
-ARGS=-Wall -Wextra
+ARGS=-Wall -Wextra -lglfw
 ifndef SYSTEM_RAYLIB
 	RAYLIB_ARGS=-lm ./raylib/src/libraylib.a
 else
