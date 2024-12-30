@@ -1,9 +1,11 @@
 CC=gcc
-VERSION=0.0.19.1
+VERSION=0.0.19.2
 PORT=42042
 THREADNUM=10
 # enable to dynamically link raylib and use the system installation
 #SYSTEM_RAYLIB=true
+
+SERVER_ARGS=-static
 
 ARGS=-Wall -Wextra
 ifndef SYSTEM_RAYLIB
@@ -18,24 +20,28 @@ ifeq ($(OS), Windows_NT)
 	RAYLIB_ARGS += -lwinmm -lgdi32 -luser32 -lshell32
 endif
 
-make: main.c raylib
+default: main
+
+all: server big_server client main
+
+main: main.c raylib
 	mkdir -p bin && $(CC) -o bin/main main.c $(ARGS) $(RAYLIB_ARGS)
 run: main.c raylib
 	mkdir -p bin && $(CC) -o bin/main main.c $(ARGS) $(RAYLIB_ARGS)
 	./bin/main
 server: server.c
-	mkdir -p bin && $(CC) -o bin/server server.c $(ARGS) $(SOCKET_ARGS) -D'TGW_VERSION="$(VERSION)"' -D'TGW_PORT=$(PORT)'
+	mkdir -p bin && $(CC) -o bin/server server.c $(ARGS) $(SERVER_ARGS) $(SOCKET_ARGS) -D'TGW_VERSION="$(VERSION)"' -D'TGW_PORT=$(PORT)'
 big_server: BIG_server.c
-	mkdir -p bin && $(CC) -o bin/BIG_server BIG_server.c $(ARGS) $(SOCKET_ARGS) -D'TGW_VERSION="$(VERSION)"' -D'TGW_PORT=$(PORT)' -D'TGW_THREADNUM=$(THREADNUM)'
+	mkdir -p bin && $(CC) -o bin/big_server BIG_server.c $(ARGS) $(SERVER_ARGS) $(SOCKET_ARGS) -D'TGW_VERSION="$(VERSION)"' -D'TGW_PORT=$(PORT)' -D'TGW_THREADNUM=$(THREADNUM)'
 client: client.c raylib
 	mkdir -p bin && $(CC) -o bin/client client.c $(ARGS) $(SOCKET_ARGS) $(RAYLIB_ARGS) -D'TGW_VERSION="$(VERSION)"'
 run-server: server.c
-	mkdir -p bin && $(CC) -o bin/server server.c $(ARGS) $(SOCKET_ARGS) -D'TGW_VERSION="$(VERSION)"' -D'TGW_PORT=$(PORT)' && ./bin/server
+	mkdir -p bin && $(CC) -o bin/server server.c $(ARGS) $(SERVER_ARGS) $(SOCKET_ARGS) -D'TGW_VERSION="$(VERSION)"' -D'TGW_PORT=$(PORT)' && ./bin/server
 run-client: client.c raylib
 	mkdir -p bin && $(CC) -o bin/client client.c $(ARGS) $(SOCKET_ARGS) $(RAYLIB_ARGS) -D'TGW_VERSION="$(VERSION)"'
 	./bin/client
 run-big_server: BIG_server.c
-	mkdir -p bin && $(CC) -o bin/BIG_server BIG_server.c $(ARGS) $(SOCKET_ARGS) -D'TGW_VERSION="$(VERSION)"' -D'TGW_PORT=$(PORT)' -D'TGW_THREADNUM=$(THREADNUM)' && ./bin/BIG_server
+	mkdir -p bin && $(CC) -o bin/big_server BIG_server.c $(ARGS) $(SERVER_ARGS) $(SOCKET_ARGS) -D'TGW_VERSION="$(VERSION)"' -D'TGW_PORT=$(PORT)' -D'TGW_THREADNUM=$(THREADNUM)' && ./bin/big_server
 clean:
 	rm raylib/src/*.o
 	rm -r bin

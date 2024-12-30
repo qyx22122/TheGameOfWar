@@ -157,6 +157,8 @@ int initcs(int* sockfd, char* ip, int port) {
     return -1;
 	}
 
+  printf("Connected to %s:%d\n", ip, port);
+
   return 0;
 
 }
